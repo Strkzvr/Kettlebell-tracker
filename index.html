@@ -10,150 +10,245 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
     :root {
-      --bg: #0f1412;
-      --panel: #171f1b;
-      --panel2: #202a25;
-      --text: #eef5ef;
-      --muted: #aab8af;
-      --line: rgba(255,255,255,.12);
-      --accent: #84d65a;
-      --accent2: #f2bd5e;
+      --bg: #091015;
+      --bg2: #0d151c;
+      --card: rgba(25, 34, 43, .84);
+      --card2: rgba(31, 42, 52, .72);
+      --card3: rgba(17, 25, 32, .86);
+      --text: #f3f7f4;
+      --muted: #9aa7b2;
+      --muted2: #6f7d88;
+      --line: rgba(255,255,255,.095);
+      --accent: #75c85b;
+      --accent-strong: #83dc62;
+      --accent-soft: rgba(117, 200, 91, .14);
+      --gold: #f2bd5e;
       --danger: #ff7676;
-      --shadow: 0 14px 38px rgba(0,0,0,.28);
-      --radius: 18px;
+      --shadow: 0 22px 60px rgba(0,0,0,.36);
+      --radius: 24px;
+      --radius-sm: 17px;
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
-    body { padding: 18px; padding-bottom: 36px; }
-    .app { max-width: 1040px; margin: 0 auto; }
-    header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
-    h1 { margin: 0; font-size: clamp(28px, 7vw, 44px); letter-spacing: -.04em; }
-    .subtitle { margin-top: 6px; color: var(--muted); line-height: 1.35; }
-    .badge { background: linear-gradient(135deg, rgba(132,214,90,.18), rgba(242,189,94,.14)); border: 1px solid var(--line); padding: 10px 12px; border-radius: 999px; color: var(--text); white-space: nowrap; font-weight: 700; }
-    .grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 14px; }
+    html, body { margin: 0; min-height: 100%; background: radial-gradient(circle at top left, rgba(117,200,91,.09), transparent 32rem), linear-gradient(180deg, var(--bg), #070b0f 72%); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+    body { padding: max(18px, env(safe-area-inset-top)) 16px 40px; }
+    .app { max-width: 1080px; margin: 0 auto; }
+
+    .app-header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin: 10px 0 18px; }
+    .title-row { display:flex; align-items:center; gap:13px; }
+    .kettlebell-mark { width:48px; height:48px; border-radius:18px; display:grid; place-items:center; background:linear-gradient(145deg, rgba(117,200,91,.95), rgba(117,200,91,.62)); box-shadow:0 18px 50px rgba(117,200,91,.17); color:#081008; font-weight:950; font-size:22px; }
+    h1 { margin:0; font-size: clamp(34px, 8vw, 56px); line-height:1; letter-spacing:-.055em; }
+    .subtitle { margin:10px 0 0; color: var(--muted); line-height:1.42; max-width: 760px; }
+    .header-actions { display:flex; gap:10px; }
+    .icon-btn { width:48px; height:48px; display:grid; place-items:center; border-radius:17px; background:var(--card2); color:var(--accent); border:1px solid var(--line); box-shadow: var(--shadow); }
+
+    .screen-grid { display:grid; grid-template-columns: 1.05fr .95fr; gap:14px; align-items:start; }
+    .dashboard-grid { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    .dashboard-wide { grid-column: 1 / -1; }
+    .tools-grid { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
     .plan-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .two-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    @media (max-width: 900px) { .grid, .two-grid, .plan-grid { grid-template-columns: 1fr; } header { display: block; } .badge { display: inline-block; margin-top: 12px; } body { padding: 12px; } }
-    .card { background: linear-gradient(180deg, var(--panel), #121916); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
-    .card h2 { margin: 0 0 12px; font-size: 20px; letter-spacing: -.02em; }
-    .card h3 { margin: 0 0 8px; font-size: 17px; letter-spacing: -.02em; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    @media (max-width: 560px) { .row, .row3 { grid-template-columns: 1fr; } }
-    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
-    input, select, textarea { width: 100%; background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 13px; padding: 12px; font: inherit; outline: none; }
-    input:focus, select:focus, textarea:focus { border-color: rgba(132,214,90,.65); box-shadow: 0 0 0 3px rgba(132,214,90,.12); }
-    textarea { min-height: 84px; resize: vertical; }
-    button { border: 0; border-radius: 14px; padding: 12px 14px; font-weight: 800; color: #081008; background: var(--accent); cursor: pointer; font: inherit; }
-    button.secondary { color: var(--text); background: var(--panel2); border: 1px solid var(--line); }
-    button.warn { background: var(--accent2); color: #160f03; }
-    button.danger { background: transparent; color: var(--danger); border: 1px solid rgba(255,118,118,.35); }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+    @media (max-width: 920px) { .screen-grid, .tools-grid, .dashboard-grid, .plan-grid, .two-grid { grid-template-columns:1fr; } .dashboard-wide { grid-column:auto; } }
+    @media (max-width: 560px) { body { padding-left:12px; padding-right:12px; } .row, .row3 { grid-template-columns:1fr; } .app-header { display:block; } .header-actions { margin-top:12px; } }
+
+    .card { position:relative; background: linear-gradient(180deg, var(--card), var(--card3)); border:1px solid var(--line); border-radius:var(--radius); padding:18px; box-shadow: var(--shadow); backdrop-filter: blur(14px); overflow:hidden; }
+    .card::before { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(135deg, rgba(255,255,255,.055), transparent 38%); opacity:.75; }
+    .card > * { position:relative; }
+    .card h2 { margin: 0 0 12px; font-size:21px; letter-spacing:-.025em; }
+    .card h3 { margin:0 0 8px; font-size:17px; letter-spacing:-.02em; }
+    .section { margin-top:14px; }
+    .muted { color: var(--muted); }
+    .tiny { font-size:12px; color:var(--muted); line-height:1.45; }
+    .mini-label { color:var(--accent); font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
+
+    .today-card { padding:22px; }
+    .today-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:18px; }
+    .today-date { color:var(--muted); margin-top:4px; }
+    .status-pill { display:inline-flex; align-items:center; gap:7px; padding:9px 12px; border-radius:999px; color:var(--accent-strong); background:rgba(117,200,91,.12); border:1px solid rgba(117,200,91,.24); font-weight:850; white-space:nowrap; }
+    .hero-stats { display:grid; grid-template-columns:repeat(3, 1fr); gap:0; }
+    .hero-stat { padding:8px 14px; border-right:1px solid var(--line); }
+    .hero-stat:first-child { padding-left:0; }
+    .hero-stat:last-child { border-right:0; padding-right:0; }
+    .hero-stat .label { color:var(--muted); font-size:14px; margin-bottom:8px; }
+    .hero-stat .value { font-size: clamp(28px, 6vw, 40px); font-weight:950; letter-spacing:-.05em; line-height:1; }
+    .hero-stat .sub { color:var(--muted); margin-top:7px; font-size:14px; }
+    @media (max-width:520px){ .hero-stats{grid-template-columns:1fr;} .hero-stat{border-right:0;border-bottom:1px solid var(--line);padding:12px 0;} .hero-stat:last-child{border-bottom:0;} }
+
+    .next-hero { min-height:220px; background: radial-gradient(circle at 82% 48%, rgba(117,200,91,.24), transparent 9rem), linear-gradient(180deg, rgba(32,45,55,.92), rgba(16,24,31,.9)); }
+    .next-hero-content { display:grid; grid-template-columns:1fr auto; gap:14px; align-items:center; }
+    .next-title { font-size: clamp(30px, 7vw, 45px); font-weight:950; letter-spacing:-.055em; margin:8px 0 10px; }
+    .code-badge { display:inline-grid; place-items:center; min-width:32px; height:28px; padding:0 10px; border-radius:10px; border:1px solid rgba(117,200,91,.3); color:var(--accent); background:rgba(117,200,91,.1); font-weight:950; }
+    .next-meta { display:flex; flex-wrap:wrap; gap:10px; color:var(--muted); margin:10px 0 18px; }
+    .kettle-ghost { width:150px; height:150px; opacity:.48; filter:drop-shadow(0 0 30px rgba(117,200,91,.15)); display:grid; place-items:center; font-size:88px; }
+    @media (max-width:560px){ .next-hero-content{grid-template-columns:1fr;} .kettle-ghost{display:none;} }
+
+    .goal-card { display:grid; grid-template-columns:1fr 104px; gap:16px; align-items:center; }
+    .ring { --p:0; width:96px; height:96px; border-radius:50%; display:grid; place-items:center; background:conic-gradient(var(--accent) calc(var(--p) * 1%), rgba(255,255,255,.08) 0); position:relative; }
+    .ring::after { content:""; position:absolute; inset:10px; border-radius:50%; background:#111922; }
+    .ring > div { position:relative; z-index:1; text-align:center; font-weight:950; font-size:20px; }
+    .ring small { display:block; color:var(--muted); font-size:12px; font-weight:700; margin-top:2px; }
+
+    .recent-list { display:grid; gap:4px; }
+    .recent-row { display:grid; grid-template-columns:42px 1fr auto; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); }
+    .recent-row:last-child{border-bottom:0;}
+    .round-code { width:40px; height:40px; border-radius:50%; display:grid; place-items:center; color:var(--accent); background:rgba(117,200,91,.12); border:1px solid rgba(117,200,91,.2); font-weight:950; }
+    .recent-volume { text-align:right; font-weight:850; }
+
+    .quick-actions { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .action-tile { display:flex; align-items:center; gap:12px; text-align:left; padding:16px; border-radius:20px; background:var(--card2); color:var(--text); border:1px solid var(--line); min-height:92px; }
+    .action-tile .plus { width:48px; height:48px; display:grid; place-items:center; border-radius:14px; border:1px solid rgba(117,200,91,.35); color:var(--accent); font-size:28px; font-weight:500; flex:0 0 auto; }
+    .action-tile b { display:block; margin-bottom:4px; }
+    .action-tile span { color:var(--muted); font-size:13px; font-weight:600; }
+    @media (max-width:480px){ .quick-actions{grid-template-columns:1fr;} }
+
+    label { display:block; font-size:13px; color: var(--muted); margin-bottom:6px; }
+    input, select, textarea { width:100%; background:rgba(255,255,255,.055); border:1px solid var(--line); color:var(--text); border-radius:15px; padding:12px; font:inherit; outline:none; }
+    input:focus, select:focus, textarea:focus { border-color:rgba(117,200,91,.68); box-shadow:0 0 0 3px rgba(117,200,91,.11); }
+    textarea { min-height:84px; resize:vertical; }
+    button { border:0; border-radius:15px; padding:12px 14px; font-weight:850; color:#071006; background:linear-gradient(180deg, var(--accent-strong), var(--accent)); cursor:pointer; font:inherit; }
+    button.secondary { color:var(--text); background:rgba(255,255,255,.055); border:1px solid var(--line); }
+    button.warn { background:var(--gold); color:#160f03; }
+    button.danger { background:transparent; color:var(--danger); border:1px solid rgba(255,118,118,.35); }
     button:active { transform: translateY(1px); }
-    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-    .exercise-list { display: grid; gap: 8px; margin-top: 8px; }
-    .exercise { display: grid; grid-template-columns: 1.45fr .55fr .75fr .46fr; gap: 8px; align-items: end; padding: 10px; background: rgba(255,255,255,.035); border: 1px solid var(--line); border-radius: 16px; }
-    .exercise button { padding: 11px 10px; }
-    @media (max-width: 720px) { .exercise { grid-template-columns: 1fr 1fr; } .exercise .wide { grid-column: 1 / -1; } }
-    .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    @media (max-width: 420px) { .stats { grid-template-columns: 1fr; } }
-    .stat { background: rgba(255,255,255,.045); border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
-    .stat .num { font-size: 29px; font-weight: 900; line-height: 1; letter-spacing: -.04em; }
-    .stat .txt { margin-top: 7px; color: var(--muted); font-size: 13px; }
-    .history { display: grid; gap: 10px; }
-    .workout { background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 16px; padding: 13px; }
-    .workout-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
-    .workout-date { font-weight: 900; }
-    .workout-meta { color: var(--muted); font-size: 13px; margin-top: 3px; }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-    .chip { font-size: 12px; color: var(--text); background: rgba(132,214,90,.10); border: 1px solid rgba(132,214,90,.22); padding: 6px 8px; border-radius: 999px; }
-    .chip.gold { background: rgba(242,189,94,.11); border-color: rgba(242,189,94,.26); }
-    .tiny { font-size: 12px; color: var(--muted); line-height: 1.45; }
-    .empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 16px; padding: 16px; text-align: center; }
-    .hr { height: 1px; background: var(--line); margin: 14px 0; }
-    .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: #eff8ef; color: #0b130c; padding: 12px 14px; border-radius: 999px; box-shadow: var(--shadow); font-weight: 800; display: none; z-index: 10; }
-    .file-input { display: none; }
-    details { border: 1px solid var(--line); border-radius: 16px; padding: 12px; background: rgba(255,255,255,.03); }
-    summary { cursor: pointer; font-weight: 800; }
-    .small-list { margin: 10px 0 0 18px; padding: 0; color: var(--muted); line-height: 1.5; }
-    .backup-note { margin-top: 10px; color: var(--muted); font-size: 13px; line-height: 1.45; }
-    .pill { display:inline-block; margin-top:6px; padding:5px 8px; border-radius:999px; background:rgba(242,189,94,.12); border:1px solid rgba(242,189,94,.25); color:var(--accent2); font-size:12px; font-weight:800; }
-    .plan-card { background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
-    .plan-card .meta { color: var(--muted); font-size: 13px; line-height: 1.45; }
-    .plan-card ul { margin: 10px 0 0 18px; padding: 0; color: var(--text); line-height: 1.45; }
-    .plan-card li { margin: 5px 0; }
-    .template-hint { margin-top: 10px; background: rgba(132,214,90,.075); border: 1px solid rgba(132,214,90,.22); border-radius: 16px; padding: 13px; }
-    .template-hint .hint-title { font-weight: 900; font-size: 16px; margin-bottom: 5px; }
-    .template-hint .hint-meta { color: var(--muted); font-size: 13px; line-height: 1.45; }
-    .template-hint .hint-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-    @media (max-width: 640px) { .template-hint .hint-cols { grid-template-columns: 1fr; } }
-    .template-hint ul { margin: 8px 0 0 18px; padding: 0; line-height: 1.45; }
-    .template-hint li { margin: 4px 0; }
-    .mini-label { color: var(--accent2); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
+    .actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+
+    .exercise-list { display:grid; gap:8px; margin-top:8px; }
+    .exercise { display:grid; grid-template-columns:1.45fr .55fr .75fr .46fr; gap:8px; align-items:end; padding:10px; background:rgba(255,255,255,.035); border:1px solid var(--line); border-radius:17px; }
+    .exercise button { padding:11px 10px; }
+    @media (max-width:720px){ .exercise{grid-template-columns:1fr 1fr;} .exercise .wide{grid-column:1/-1;} }
+
+    .stats { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
+    @media (max-width:720px){ .stats{grid-template-columns:1fr 1fr;} }
+    @media (max-width:420px){ .stats{grid-template-columns:1fr;} }
+    .stat { background:rgba(255,255,255,.045); border:1px solid var(--line); border-radius:17px; padding:14px; }
+    .stat .num { font-size:28px; font-weight:950; line-height:1; letter-spacing:-.04em; }
+    .stat .txt { margin-top:7px; color:var(--muted); font-size:13px; }
+
+    .history { display:grid; gap:10px; }
+    .workout { background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:17px; padding:13px; }
+    .workout-top { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+    .workout-date { font-weight:950; }
+    .workout-meta { color:var(--muted); font-size:13px; margin-top:3px; }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+    .chip { font-size:12px; color:var(--text); background:rgba(117,200,91,.10); border:1px solid rgba(117,200,91,.22); padding:6px 8px; border-radius:999px; }
+    .chip.gold { background:rgba(242,189,94,.11); border-color:rgba(242,189,94,.26); }
+    .empty { color:var(--muted); border:1px dashed var(--line); border-radius:17px; padding:16px; text-align:center; }
+    .hr { height:1px; background:var(--line); margin:14px 0; }
+    .toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:#eff8ef; color:#0b130c; padding:12px 14px; border-radius:999px; box-shadow:var(--shadow); font-weight:850; display:none; z-index:10; }
+    .file-input { display:none; }
+    details { border:1px solid var(--line); border-radius:17px; padding:12px; background:rgba(255,255,255,.03); }
+    summary { cursor:pointer; font-weight:850; }
+    .small-list { margin:10px 0 0 18px; padding:0; color:var(--muted); line-height:1.5; }
+    .backup-note { margin-top:10px; color:var(--muted); font-size:13px; line-height:1.45; }
+    .pill { display:inline-block; margin-top:6px; padding:5px 8px; border-radius:999px; background:rgba(242,189,94,.12); border:1px solid rgba(242,189,94,.25); color:var(--gold); font-size:12px; font-weight:850; }
+
+    .plan-card { background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:17px; padding:14px; }
+    .plan-card .code-large { width:52px; height:52px; border-radius:16px; display:grid; place-items:center; color:var(--accent); border:1px solid rgba(117,200,91,.24); background:rgba(117,200,91,.08); font-size:28px; font-weight:950; margin-bottom:10px; }
+    .plan-card .meta { color:var(--muted); font-size:13px; line-height:1.45; }
+    .plan-card ul { margin:10px 0 0 18px; padding:0; color:var(--text); line-height:1.45; }
+    .plan-card li { margin:5px 0; }
+    .template-hint { margin-top:10px; background:rgba(117,200,91,.075); border:1px solid rgba(117,200,91,.22); border-radius:17px; padding:13px; }
+    .template-hint .hint-title { font-weight:950; font-size:16px; margin-bottom:5px; }
+    .template-hint .hint-meta { color:var(--muted); font-size:13px; line-height:1.45; }
+    .template-hint .hint-cols { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+    @media (max-width:640px){ .template-hint .hint-cols{grid-template-columns:1fr;} }
+    .template-hint ul { margin:8px 0 0 18px; padding:0; line-height:1.45; }
+    .template-hint li { margin:4px 0; }
     .plan-buttons { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
     .next-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
-    @media (max-width: 600px) { .next-head, .workout-top { display:block; } .workout-top button { margin-top:10px; } }
+    @media (max-width:600px){ .next-head, .workout-top{display:block;} .workout-top button{margin-top:10px;} }
     .table { width:100%; border-collapse:collapse; overflow:hidden; border-radius:14px; font-size:14px; }
     .table th, .table td { text-align:left; padding:10px; border-bottom:1px solid var(--line); vertical-align:top; }
     .table th { color:var(--muted); font-size:12px; font-weight:700; }
     .table tr:last-child td { border-bottom:0; }
-    .muted { color: var(--muted); }
+    .safe-badge { display:inline-flex; gap:6px; align-items:center; border:1px solid rgba(117,200,91,.25); background:rgba(117,200,91,.08); color:var(--text); padding:7px 10px; border-radius:999px; font-size:12px; font-weight:850; margin-top:8px; }
 
-    .brand-row { display:flex; gap:12px; align-items:center; }
-    .brandmark { width:52px; height:52px; border-radius:17px; display:grid; place-items:center; background:linear-gradient(135deg, rgba(132,214,90,.95), rgba(242,189,94,.78)); color:#081008; font-weight:950; letter-spacing:-.08em; box-shadow:0 16px 42px rgba(132,214,90,.16); flex:0 0 auto; }
-    .brand-kicker { color:var(--accent2); font-size:12px; text-transform:uppercase; letter-spacing:.12em; font-weight:900; margin-bottom:4px; }
-    .design-note { margin-top:10px; display:flex; flex-wrap:wrap; gap:7px; }
-    .design-token { border:1px solid var(--line); background:rgba(255,255,255,.045); color:var(--muted); padding:6px 9px; border-radius:999px; font-size:12px; }
     .install-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:10px; }
-    @media (max-width: 820px) { .install-grid { grid-template-columns:1fr; } }
-    .install-step { background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:16px; padding:12px; }
+    @media (max-width:820px){ .install-grid{grid-template-columns:1fr;} }
+    .install-step { background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:17px; padding:12px; }
     .install-step b { display:block; margin-bottom:5px; }
     .install-step span { color:var(--muted); font-size:13px; line-height:1.45; }
-    .safe-badge { display:inline-flex; gap:6px; align-items:center; border:1px solid rgba(132,214,90,.25); background:rgba(132,214,90,.08); color:var(--text); padding:7px 10px; border-radius:999px; font-size:12px; font-weight:800; margin-top:8px; }
 
-    .analytics-grid { display:grid; grid-template-columns: 1.15fr .85fr; gap:12px; margin-top:12px; }
-    @media (max-width: 860px) { .analytics-grid { grid-template-columns:1fr; } }
-    .analytics-box { background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:16px; padding:14px; }
-    .analytics-box h3 { margin:0 0 10px; }
+    .analytics-grid { display:grid; grid-template-columns:1.15fr .85fr; gap:12px; margin-top:12px; }
+    @media (max-width:860px){ .analytics-grid{grid-template-columns:1fr;} }
+    .analytics-box { background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:17px; padding:14px; }
     .bar-list { display:grid; gap:10px; }
-    .bar-row { display:grid; grid-template-columns: 105px 1fr; gap:10px; align-items:center; }
-    @media (max-width: 480px) { .bar-row { grid-template-columns:1fr; gap:6px; } }
+    .bar-row { display:grid; grid-template-columns:105px 1fr; gap:10px; align-items:center; }
+    @media (max-width:480px){ .bar-row{grid-template-columns:1fr; gap:6px;} }
     .bar-label { color:var(--muted); font-size:12px; line-height:1.25; }
     .bar-track { height:12px; border-radius:999px; background:rgba(255,255,255,.08); overflow:hidden; border:1px solid rgba(255,255,255,.08); }
     .bar-fill { height:100%; border-radius:999px; background:linear-gradient(90deg, var(--accent), rgba(242,189,94,.88)); min-width:2px; }
-    .bar-value { margin-top:4px; color:var(--text); font-size:12px; font-weight:800; }
-    .week-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; }
-    @media (max-width: 700px) { .week-grid { grid-template-columns:1fr 1fr; } }
-    @media (max-width: 420px) { .week-grid { grid-template-columns:1fr; } }
-    .week-card { border:1px solid var(--line); border-radius:15px; padding:10px; background:rgba(255,255,255,.035); }
+    .bar-value { margin-top:4px; color:var(--text); font-size:12px; font-weight:850; }
+    .week-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+    @media (max-width:700px){ .week-grid{grid-template-columns:1fr 1fr;} }
+    @media (max-width:420px){ .week-grid{grid-template-columns:1fr;} }
+    .week-card { border:1px solid var(--line); border-radius:16px; padding:10px; background:rgba(255,255,255,.035); }
     .week-card b { display:block; font-size:13px; margin-bottom:8px; }
     .week-metric { margin-top:7px; }
     .week-metric .metric-top { display:flex; justify-content:space-between; gap:8px; color:var(--muted); font-size:11px; margin-bottom:4px; }
-    .progress-target { margin-top:12px; border:1px solid rgba(132,214,90,.22); background:rgba(132,214,90,.06); border-radius:16px; padding:12px; }
+    .progress-target { margin-top:12px; border:1px solid rgba(117,200,91,.22); background:rgba(117,200,91,.06); border-radius:17px; padding:12px; }
     .progress-target .big { font-size:22px; font-weight:950; letter-spacing:-.03em; }
-    .insight-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px; }
-    @media (max-width: 760px) { .insight-grid { grid-template-columns:1fr; } }
-    .insight { border:1px solid var(--line); border-radius:15px; padding:11px; background:rgba(255,255,255,.035); }
+    .insight-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; }
+    @media (max-width:760px){ .insight-grid{grid-template-columns:1fr;} }
+    .insight { border:1px solid var(--line); border-radius:16px; padding:11px; background:rgba(255,255,255,.035); }
     .insight b { display:block; margin-bottom:4px; }
     .insight span { color:var(--muted); font-size:13px; line-height:1.4; }
   </style>
 </head>
 <body>
   <div class="app">
-    <header>
-      <div class="brand-row">
-        <div class="brandmark">16</div>
-        <div>
-          <div class="brand-kicker">Личный дневник тренировок</div>
+    <header class="app-header">
+      <div>
+        <div class="title-row">
+          <div class="kettlebell-mark">⌁</div>
           <h1>Дневник гири</h1>
-          <div class="subtitle">Фиксируй тренировки, смотри частоту, любимые упражнения и примерный объём. Стартовая история из 5 тренировок уже добавляется автоматически. Есть план на месяц, следующая тренировка и резервные копии.</div>
-          <div class="design-note"><span class="design-token">графит</span><span class="design-token">зелёный акцент</span><span class="design-token">мобильный формат</span></div>
         </div>
+        <p class="subtitle">Главный экран стал проще: сегодня, следующая тренировка, цель на 30 дней, недавние записи и быстрый доступ к форме и аналитике.</p>
       </div>
-      <div class="badge">16 кг · домашние тренировки</div>
+      <div class="header-actions">
+        <button class="icon-btn" id="jumpAnalyticsTop" title="Аналитика" type="button">▥</button>
+        <button class="icon-btn" id="jumpFormTop" title="Новая тренировка" type="button">＋</button>
+      </div>
     </header>
 
-    <div class="grid">
-      <section class="card">
+    <section class="dashboard-grid">
+      <div class="card today-card dashboard-wide">
+        <div class="today-head">
+          <div>
+            <div class="mini-label">На сегодня</div>
+            <div id="todayDate" class="today-date"></div>
+          </div>
+          <div class="status-pill">✓ день можно начать</div>
+        </div>
+        <div id="todaySummary" class="hero-stats"></div>
+      </div>
+
+      <div class="card next-hero dashboard-wide">
+        <div id="nextHero" class="next-hero-content"></div>
+      </div>
+
+      <div class="card goal-card">
+        <div id="goalText"></div>
+        <div id="goalRing" class="ring"><div>0/8<small>0%</small></div></div>
+      </div>
+
+      <div class="card">
+        <div class="next-head">
+          <h2>Недавние тренировки</h2>
+          <button class="secondary" id="jumpHistory" type="button">Все</button>
+        </div>
+        <div id="recentHero" class="recent-list"></div>
+      </div>
+
+      <div class="quick-actions dashboard-wide">
+        <button class="action-tile" id="quickForm" type="button"><span class="plus">＋</span><span><b>Сохранить тренировку</b><span>Ручной ввод или шаблон A/B/C</span></span></button>
+        <button class="action-tile" id="quickAnalytics" type="button"><span class="plus">▥</span><span><b>Аналитика</b><span>Графики, объём и прогресс</span></span></button>
+      </div>
+    </section>
+
+    <section class="screen-grid section">
+      <section class="card" id="formCard">
         <h2>Новая тренировка</h2>
         <div class="row3">
           <div>
@@ -169,7 +264,6 @@
             <input id="weight" type="number" inputmode="decimal" min="1" max="80" value="16">
           </div>
         </div>
-
         <div class="row" style="margin-top:10px">
           <div>
             <label for="intensity">Самочувствие / нагрузка</label>
@@ -193,21 +287,16 @@
             </select>
           </div>
         </div>
-
         <div id="templateHint" class="template-hint"></div>
-
         <div class="actions">
           <button class="secondary" id="applyTemplate">Заполнить шаблон</button>
           <button class="secondary" id="addExercise">+ упражнение</button>
         </div>
-
         <div id="exerciseList" class="exercise-list"></div>
-
         <div style="margin-top:10px">
           <label for="notes">Заметки</label>
           <textarea id="notes" placeholder="Например: без отказа, спина нормально, махи пошли легче..."></textarea>
         </div>
-
         <div class="actions">
           <button id="saveWorkout">Сохранить тренировку</button>
           <button class="secondary" id="clearForm">Очистить</button>
@@ -215,34 +304,18 @@
       </section>
 
       <aside class="card">
-        <h2>Статистика</h2>
-        <div id="stats" class="stats"></div>
-        <div class="hr"></div>
-        <details>
-          <summary>Как лучше фиксировать</summary>
-          <ul class="small-list">
-            <li>Дата и длительность — чтобы видеть регулярность.</li>
-            <li>Подходы и повторы — чтобы видеть рост объёма.</li>
-            <li>Самочувствие — чтобы не загонять себя после тяжёлых рабочих дней.</li>
-            <li>Заметки — боль, сон, энергия, что было легко или тяжело.</li>
-          </ul>
-        </details>
-        <details style="margin-top:10px" open>
-          <summary>Установка на телефон и сохранение прогресса</summary>
-          <div class="backup-note">
-            Сейчас это локальное приложение: данные сохраняются в браузере на конкретном устройстве, а незавершённая форма автосохраняется как черновик. Чтобы не потерять прогресс, главный файл для резервной копии — <b>JSON-бэкап</b>. CSV нужен больше для таблиц и анализа.
-          </div>
+        <h2>Быстрые действия</h2>
+        <details open>
+          <summary>Как сохранять прогресс</summary>
+          <div class="backup-note">Данные сохраняются в браузере на этом устройстве. Чтобы не потерять историю, делай JSON-бэкап и сохраняй его в облако или Telegram.</div>
           <div class="install-grid">
-            <div class="install-step"><b>1. Быстро</b><span>Открывать HTML-файл на телефоне. Работает без регистрации, но данные привязаны к браузеру и адресу файла.</span></div>
-            <div class="install-step"><b>2. Надёжнее</b><span>Раз в неделю скачивать JSON-бэкап и сохранять его в iCloud Drive / Google Drive / Яндекс Диск / Telegram.</span></div>
-            <div class="install-step"><b>3. Идеально</b><span>Выложить как онлайн/PWA-версию на домен. Тогда можно добавить на экран «Домой», обновлять дизайн и пользоваться с одного адреса.</span></div>
+            <div class="install-step"><b>1. Записал</b><span>После тренировки нажми «Сохранить тренировку».</span></div>
+            <div class="install-step"><b>2. Сохранил</b><span>Раз в неделю скачай JSON-бэкап.</span></div>
+            <div class="install-step"><b>3. Восстановил</b><span>На новом устройстве нажми «Восстановить из JSON».</span></div>
           </div>
-          <div class="safe-badge">✓ JSON восстанавливает историю обратно в приложение</div>
         </details>
         <div class="actions">
           <button class="secondary" id="seedWorkouts">Загрузить мои 5 тренировок</button>
-        </div>
-        <div class="actions">
           <button class="secondary" id="exportJson">Скачать JSON-бэкап</button>
           <button class="secondary" id="exportCsv">Экспорт CSV</button>
           <button class="secondary" id="importBtn">Восстановить из JSON</button>
@@ -255,13 +328,18 @@
           <button class="danger" id="resetAll">Сбросить всё</button>
         </div>
       </aside>
-    </div>
+    </section>
 
-    <section class="card" style="margin-top:14px">
+    <section class="card section" id="statsSection">
+      <h2>Детальная статистика</h2>
+      <div id="stats" class="stats"></div>
+    </section>
+
+    <section class="card section" id="analyticsSection">
       <div class="next-head">
         <div>
           <h2>Аналитика прогресса</h2>
-          <div class="muted">Графики считаются из истории тренировок: регулярность по неделям, минуты, примерный объём и самые частые упражнения.</div>
+          <div class="muted">Регулярность по неделям, минуты, примерный объём, частые упражнения и баланс A/B/C.</div>
         </div>
         <div class="actions" style="margin-top:0">
           <button class="secondary" id="copyAnalytics">Скопировать аналитику</button>
@@ -270,7 +348,7 @@
       <div id="analytics" class="analytics-grid"></div>
     </section>
 
-    <section class="card" style="margin-top:14px">
+    <section class="card section">
       <div class="next-head">
         <div>
           <h2>Следующая тренировка</h2>
@@ -284,11 +362,11 @@
       <div id="nextWorkout" style="margin-top:12px"></div>
     </section>
 
-    <section class="card" style="margin-top:14px">
+    <section class="card section">
       <div class="next-head">
         <div>
           <h2>План на гармоничное развитие</h2>
-          <div class="muted">Цель — не только махи, а полный баланс: ноги, тазовый шарнир, спина, жим, корпус, хват и мобильность. С учётом твоего графика: минимум 2 тренировки в неделю, третья — только если есть нормальный выходной или силы.</div>
+          <div class="muted">Минимум 2 тренировки в неделю, третья — только если есть силы. Если был тяжёлый рабочий день, выбирай C или отдых.</div>
         </div>
         <div class="actions" style="margin-top:0">
           <button class="secondary" id="copyPlan">Скопировать план</button>
@@ -297,20 +375,20 @@
       <div id="trainingPlan" class="plan-grid" style="margin-top:12px"></div>
       <div class="hr"></div>
       <h3>План на месяц с учётом графика работы</h3>
-      <div class="muted" style="margin-bottom:10px">Не привязывайся жёстко к дням недели. Если был день 7–1, сборка, мастер-класс или тяжёлая доставка — делай C или отдых. Главный минимум: 8 тренировок за месяц.</div>
+      <div class="muted" style="margin-bottom:10px">Не привязывайся жёстко к дням недели. Если был день 7–1, сборка, мастер-класс или тяжёлая доставка — делай C или отдых.</div>
       <table class="table">
-        <thead><tr><th>Неделя</th><th>Минимум, если завал на работе</th><th>Оптимально, если силы есть</th><th>Акцент</th></tr></thead>
+        <thead><tr><th>Неделя</th><th>Минимум</th><th>Оптимально</th><th>Акцент</th></tr></thead>
         <tbody>
           <tr><td>1</td><td>A + B</td><td>A + B + C</td><td>Закрепить технику, не гнаться за объёмом.</td></tr>
           <tr><td>2</td><td>A + B</td><td>A + B + C</td><td>Добавить 1–2 повтора в лёгких упражнениях.</td></tr>
-          <tr><td>3</td><td>A + B</td><td>A + B + C</td><td>Самая рабочая неделя: можно +1 подход в махах, если техника чистая.</td></tr>
-          <tr><td>4</td><td>C + A облегчённая</td><td>C + A облегчённая + прогулка/мобилити</td><td>Разгрузка, восстановление, без рекордов.</td></tr>
+          <tr><td>3</td><td>A + B</td><td>A + B + C</td><td>Самая рабочая неделя, если техника чистая.</td></tr>
+          <tr><td>4</td><td>C + A облегчённая</td><td>C + A облегчённая + прогулка/мобилити</td><td>Разгрузка и восстановление.</td></tr>
         </tbody>
       </table>
-      <div class="backup-note"><b>Правило выбора тренировки:</b> есть силы — A или B; устал после работы — C; поздно вечером — только C или 15 минут мобильности; болит спина/плечо — не тренироваться через боль.</div>
+      <div class="backup-note"><b>Правило:</b> есть силы — A или B; устал после работы — C; поздно вечером — C или 15 минут мобильности; болит спина/плечо — не тренироваться через боль.</div>
     </section>
 
-    <section class="card" style="margin-top:14px">
+    <section class="card section" id="historySection">
       <h2>История тренировок</h2>
       <div id="history" class="history"></div>
     </section>
@@ -324,7 +402,7 @@
   const STORAGE_KEY = 'kettlebell_tracker_v1';
   const DRAFT_KEY = 'kettlebell_tracker_draft_v1';
   const LAST_BACKUP_KEY = 'kettlebell_tracker_last_backup_v1';
-  const APP_VERSION = '2026-06-27-analytics';
+  const APP_VERSION = '2026-06-27-redesign-v2';
   let isSaving = false;
   let draftTimer = null;
   const exercises = [
@@ -1187,7 +1265,8 @@
 
   function renderPlan() {
     $('trainingPlan').innerHTML = plan.map((p) => `<div class="plan-card">
-      <h3>${escapeHtml(p.code)} · ${escapeHtml(p.title)}</h3>
+      <div class="code-large">${escapeHtml(p.code)}</div>
+      <h3>${escapeHtml(p.title)}</h3>
       <div class="meta">${escapeHtml(p.meta)}</div>
       <ul>${p.items.map((i) => `<li>${escapeHtml(i)}</li>`).join('')}</ul>
       <div class="plan-buttons"><button class="secondary" type="button" data-load-template="${escapeHtml(p.template)}">Загрузить ${escapeHtml(p.code)} в форму</button></div>
@@ -1200,6 +1279,77 @@
         showToast('Шаблон загружен');
       });
     });
+  }
+
+
+  function workoutVolume(w) {
+    return (w.exercises || []).reduce((sum, e) => sum + getExerciseLoad(w, e), 0);
+  }
+
+  function getStreak(data) {
+    if (!data.length) return 0;
+    const days = new Set(data.map((w) => String(w.date || '')).filter(Boolean));
+    const latest = toDate(getLatestWorkout(data).date) || new Date();
+    let streak = 0;
+    const cursor = new Date(latest);
+    while (days.has(cursor.toISOString().slice(0, 10))) {
+      streak += 1;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    return streak;
+  }
+
+  function getWorkoutCode(w) {
+    const type = classifyWorkout(w);
+    if (type === 'strength') return 'A';
+    if (type === 'hinge') return 'B';
+    if (type === 'light' || type === 'late') return 'C';
+    if (type === 'express') return 'E';
+    return '•';
+  }
+
+  function renderDashboard(data) {
+    const s = calcStats(data);
+    const a = calcAnalytics(data);
+    const today = new Date();
+    if ($('todayDate')) $('todayDate').textContent = today.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'long' });
+    if ($('todaySummary')) {
+      $('todaySummary').innerHTML = `
+        <div class="hero-stat"><div class="label">Тренировки</div><div class="value">${s.total}</div><div class="sub">всего</div></div>
+        <div class="hero-stat"><div class="label">Общий объём</div><div class="value">${formatNumberShort(s.volume)}</div><div class="sub">кг×повт.</div></div>
+        <div class="hero-stat"><div class="label">Серия</div><div class="value">${getStreak(data)}</div><div class="sub">дней подряд</div></div>`;
+    }
+    if ($('goalText')) {
+      $('goalText').innerHTML = `<h2>Цель: ${a.target} тренировок за 30 дней</h2><div class="muted">${escapeHtml(a.monthAdvice)}</div>`;
+    }
+    if ($('goalRing')) {
+      $('goalRing').style.setProperty('--p', a.targetPct);
+      $('goalRing').innerHTML = `<div>${a.last30}/${a.target}<small>${a.targetPct}%</small></div>`;
+    }
+    const rec = getRecommendation(data);
+    const guide = templateGuides[rec.key] || templateGuides.base;
+    const code = rec.key === 'strength' ? 'A' : rec.key === 'hinge' ? 'B' : rec.key === 'light' ? 'C' : '•';
+    if ($('nextHero')) {
+      $('nextHero').innerHTML = `
+        <div>
+          <div class="mini-label">Следующая тренировка <span class="code-badge">${escapeHtml(code)}</span></div>
+          <div class="next-title">${escapeHtml(templateLabels[rec.key] || guide.title)}</div>
+          <div class="muted">${escapeHtml(rec.reason)}</div>
+          <div class="next-meta"><span>⏱ ${escapeHtml((templateMeta[rec.key] || templateMeta.base).duration)} мин</span><span>● ${escapeHtml((templateMeta[rec.key] || templateMeta.base).intensity)}</span><span>16 кг</span></div>
+          <button id="loadNextHero" type="button">Начать тренировку</button>
+        </div>
+        <div class="kettle-ghost">⌁</div>`;
+      const heroBtn = $('loadNextHero');
+      if (heroBtn) heroBtn.addEventListener('click', () => { $('template').value = 'next'; applyTemplate(); $('formCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); showToast('Следующая тренировка загружена'); });
+    }
+    if ($('recentHero')) {
+      const sorted = [...data].sort((a, b) => new Date(b.date) - new Date(a.date) || String(b.id).localeCompare(String(a.id))).slice(0, 3);
+      $('recentHero').innerHTML = sorted.length ? sorted.map((w) => `<div class="recent-row">
+        <div class="round-code">${escapeHtml(getWorkoutCode(w))}</div>
+        <div><b>${escapeHtml(templateLabels[classifyWorkout(w)] || 'Тренировка')}</b><div class="tiny">${escapeHtml(formatDate(w.date))} · ${escapeHtml(w.duration || 0)} мин</div></div>
+        <div class="recent-volume"><span class="tiny">Объём</span><br>${formatNumberShort(workoutVolume(w))}</div>
+      </div>`).join('') : '<div class="empty">Пока нет записей. Сохрани первую тренировку.</div>';
+    }
   }
 
   function makeSummary(data) {
@@ -1284,6 +1434,7 @@
 
   function render() {
     const data = loadWorkouts();
+    renderDashboard(data);
     renderStats(data);
     renderAnalytics(data);
     renderHistory(data);
@@ -1298,6 +1449,10 @@
   $('saveWorkout').addEventListener('click', saveCurrentWorkout);
   $('clearForm').addEventListener('click', clearForm);
   $('loadNext').addEventListener('click', () => { $('template').value = 'next'; applyTemplate(); window.scrollTo({ top: 0, behavior: 'smooth' }); showToast('Следующая тренировка загружена'); });
+  const jumpTo = (id) => { const el = $(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  ['jumpFormTop','quickForm'].forEach((id) => { if ($(id)) $(id).addEventListener('click', () => jumpTo('formCard')); });
+  ['jumpAnalyticsTop','quickAnalytics'].forEach((id) => { if ($(id)) $(id).addEventListener('click', () => jumpTo('analyticsSection')); });
+  if ($('jumpHistory')) $('jumpHistory').addEventListener('click', () => jumpTo('historySection'));
   $('copyNext').addEventListener('click', () => copyText(makeNextText(), 'Тренировка скопирована'));
   $('copyPlan').addEventListener('click', () => copyText(makePlanText(), 'План скопирован'));
   $('seedWorkouts').addEventListener('click', () => addInitialWorkouts(true));
@@ -1347,8 +1502,10 @@
     }
   });
 
-  document.querySelector('section.card').addEventListener('input', saveDraftSoon);
-  document.querySelector('section.card').addEventListener('change', saveDraftSoon);
+  if ($('formCard')) {
+    $('formCard').addEventListener('input', saveDraftSoon);
+    $('formCard').addEventListener('change', saveDraftSoon);
+  }
 
   seedIfEmpty();
   if (!restoreDraftIfUseful()) clearForm();
