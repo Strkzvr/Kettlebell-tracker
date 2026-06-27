@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Дневник гири</title>
+  <meta name="theme-color" content="#0f1412">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Дневник гири">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    :root {
+      --bg: #0f1412;
+      --panel: #171f1b;
+      --panel2: #202a25;
+      --text: #eef5ef;
+      --muted: #aab8af;
+      --line: rgba(255,255,255,.12);
+      --accent: #84d65a;
+      --accent2: #f2bd5e;
+      --danger: #ff7676;
+      --shadow: 0 14px 38px rgba(0,0,0,.28);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+    body { padding: 18px; padding-bottom: 36px; }
+    .app { max-width: 1040px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
+    h1 { margin: 0; font-size: clamp(28px, 7vw, 44px); letter-spacing: -.04em; }
+    .subtitle { margin-top: 6px; color: var(--muted); line-height: 1.35; }
+    .badge { background: linear-gradient(135deg, rgba(132,214,90,.18), rgba(242,189,94,.14)); border: 1px solid var(--line); padding: 10px 12px; border-radius: 999px; color: var(--text); white-space: nowrap; font-weight: 700; }
+    .grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 14px; }
+    .plan-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .two-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 900px) { .grid, .two-grid, .plan-grid { grid-template-columns: 1fr; } header { display: block; } .badge { display: inline-block; margin-top: 12px; } body { padding: 12px; } }
+    .card { background: linear-gradient(180deg, var(--panel), #121916); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+    .card h2 { margin: 0 0 12px; font-size: 20px; letter-spacing: -.02em; }
+    .card h3 { margin: 0 0 8px; font-size: 17px; letter-spacing: -.02em; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    @media (max-width: 560px) { .row, .row3 { grid-template-columns: 1fr; } }
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    input, select, textarea { width: 100%; background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 13px; padding: 12px; font: inherit; outline: none; }
+    input:focus, select:focus, textarea:focus { border-color: rgba(132,214,90,.65); box-shadow: 0 0 0 3px rgba(132,214,90,.12); }
+    textarea { min-height: 84px; resize: vertical; }
+    button { border: 0; border-radius: 14px; padding: 12px 14px; font-weight: 800; color: #081008; background: var(--accent); cursor: pointer; font: inherit; }
+    button.secondary { color: var(--text); background: var(--panel2); border: 1px solid var(--line); }
+    button.warn { background: var(--accent2); color: #160f03; }
+    button.danger { background: transparent; color: var(--danger); border: 1px solid rgba(255,118,118,.35); }
+    button:active { transform: translateY(1px); }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .exercise-list { display: grid; gap: 8px; margin-top: 8px; }
+    .exercise { display: grid; grid-template-columns: 1.45fr .55fr .75fr .46fr; gap: 8px; align-items: end; padding: 10px; background: rgba(255,255,255,.035); border: 1px solid var(--line); border-radius: 16px; }
+    .exercise button { padding: 11px 10px; }
+    @media (max-width: 720px) { .exercise { grid-template-columns: 1fr 1fr; } .exercise .wide { grid-column: 1 / -1; } }
+    .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    @media (max-width: 420px) { .stats { grid-template-columns: 1fr; } }
+    .stat { background: rgba(255,255,255,.045); border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
+    .stat .num { font-size: 29px; font-weight: 900; line-height: 1; letter-spacing: -.04em; }
+    .stat .txt { margin-top: 7px; color: var(--muted); font-size: 13px; }
+    .history { display: grid; gap: 10px; }
+    .workout { background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 16px; padding: 13px; }
+    .workout-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .workout-date { font-weight: 900; }
+    .workout-meta { color: var(--muted); font-size: 13px; margin-top: 3px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .chip { font-size: 12px; color: var(--text); background: rgba(132,214,90,.10); border: 1px solid rgba(132,214,90,.22); padding: 6px 8px; border-radius: 999px; }
+    .chip.gold { background: rgba(242,189,94,.11); border-color: rgba(242,189,94,.26); }
+    .tiny { font-size: 12px; color: var(--muted); line-height: 1.45; }
+    .empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 16px; padding: 16px; text-align: center; }
+    .hr { height: 1px; background: var(--line); margin: 14px 0; }
+    .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: #eff8ef; color: #0b130c; padding: 12px 14px; border-radius: 999px; box-shadow: var(--shadow); font-weight: 800; display: none; z-index: 10; }
+    .file-input { display: none; }
+    details { border: 1px solid var(--line); border-radius: 16px; padding: 12px; background: rgba(255,255,255,.03); }
+    summary { cursor: pointer; font-weight: 800; }
+    .small-list { margin: 10px 0 0 18px; padding: 0; color: var(--muted); line-height: 1.5; }
+    .backup-note { margin-top: 10px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .pill { display:inline-block; margin-top:6px; padding:5px 8px; border-radius:999px; background:rgba(242,189,94,.12); border:1px solid rgba(242,189,94,.25); color:var(--accent2); font-size:12px; font-weight:800; }
+    .plan-card { background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
+    .plan-card .meta { color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .plan-card ul { margin: 10px 0 0 18px; padding: 0; color: var(--text); line-height: 1.45; }
+    .plan-card li { margin: 5px 0; }
+    .template-hint { margin-top: 10px; background: rgba(132,214,90,.075); border: 1px solid rgba(132,214,90,.22); border-radius: 16px; padding: 13px; }
+    .template-hint .hint-title { font-weight: 900; font-size: 16px; margin-bottom: 5px; }
+    .template-hint .hint-meta { color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .template-hint .hint-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    @media (max-width: 640px) { .template-hint .hint-cols { grid-template-columns: 1fr; } }
+    .template-hint ul { margin: 8px 0 0 18px; padding: 0; line-height: 1.45; }
+    .template-hint li { margin: 4px 0; }
+    .mini-label { color: var(--accent2); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
+    .plan-buttons { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .next-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+    @media (max-width: 600px) { .next-head, .workout-top { display:block; } .workout-top button { margin-top:10px; } }
+    .table { width:100%; border-collapse:collapse; overflow:hidden; border-radius:14px; font-size:14px; }
+    .table th, .table td { text-align:left; padding:10px; border-bottom:1px solid var(--line); vertical-align:top; }
+    .table th { color:var(--muted); font-size:12px; font-weight:700; }
+    .table tr:last-child td { border-bottom:0; }
+    .muted { color: var(--muted); }
+
+    .brand-row { display:flex; gap:12px; align-items:center; }
+    .brandmark { width:52px; height:52px; border-radius:17px; display:grid; place-items:center; background:linear-gradient(135deg, rgba(132,214,90,.95), rgba(242,189,94,.78)); color:#081008; font-weight:950; letter-spacing:-.08em; box-shadow:0 16px 42px rgba(132,214,90,.16); flex:0 0 auto; }
+    .brand-kicker { color:var(--accent2); font-size:12px; text-transform:uppercase; letter-spacing:.12em; font-weight:900; margin-bottom:4px; }
+    .design-note { margin-top:10px; display:flex; flex-wrap:wrap; gap:7px; }
+    .design-token { border:1px solid var(--line); background:rgba(255,255,255,.045); color:var(--muted); padding:6px 9px; border-radius:999px; font-size:12px; }
+    .install-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:10px; }
+    @media (max-width: 820px) { .install-grid { grid-template-columns:1fr; } }
+    .install-step { background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:16px; padding:12px; }
+    .install-step b { display:block; margin-bottom:5px; }
+    .install-step span { color:var(--muted); font-size:13px; line-height:1.45; }
+    .safe-badge { display:inline-flex; gap:6px; align-items:center; border:1px solid rgba(132,214,90,.25); background:rgba(132,214,90,.08); color:var(--text); padding:7px 10px; border-radius:999px; font-size:12px; font-weight:800; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand-row">
+        <div class="brandmark">16</div>
+        <div>
+          <div class="brand-kicker">Личный дневник тренировок</div>
+          <h1>Дневник гири</h1>
+          <div class="subtitle">Фиксируй тренировки, смотри частоту, любимые упражнения и примерный объём. Стартовая история из 5 тренировок уже добавляется автоматически. Есть план на месяц, следующая тренировка и резервные копии.</div>
+          <div class="design-note"><span class="design-token">графит</span><span class="design-token">зелёный акцент</span><span class="design-token">мобильный формат</span></div>
+        </div>
+      </div>
+      <div class="badge">16 кг · домашние тренировки</div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Новая тренировка</h2>
+        <div class="row3">
+          <div>
+            <label for="date">Дата</label>
+            <input id="date" type="date">
+          </div>
+          <div>
+            <label for="duration">Время, минут</label>
+            <input id="duration" type="number" inputmode="numeric" min="1" max="180" value="25">
+          </div>
+          <div>
+            <label for="weight">Гиря, кг</label>
+            <input id="weight" type="number" inputmode="decimal" min="1" max="80" value="16">
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="intensity">Самочувствие / нагрузка</label>
+            <select id="intensity">
+              <option value="Лёгкая">Лёгкая</option>
+              <option value="Умеренная" selected>Умеренная</option>
+              <option value="Тяжёлая">Тяжёлая</option>
+            </select>
+          </div>
+          <div>
+            <label for="template">Шаблон</label>
+            <select id="template">
+              <option value="next">Следующая тренировка B</option>
+              <option value="base">База 3 круга</option>
+              <option value="strength">A · сила и база</option>
+              <option value="hinge">B · махи, спина, корпус</option>
+              <option value="light">C · лёгкая техника</option>
+              <option value="express">Экспресс 20 минут</option>
+              <option value="late">Поздняя лёгкая</option>
+              <option value="empty">Пустая тренировка</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="templateHint" class="template-hint"></div>
+
+        <div class="actions">
+          <button class="secondary" id="applyTemplate">Заполнить шаблон</button>
+          <button class="secondary" id="addExercise">+ упражнение</button>
+        </div>
+
+        <div id="exerciseList" class="exercise-list"></div>
+
+        <div style="margin-top:10px">
+          <label for="notes">Заметки</label>
+          <textarea id="notes" placeholder="Например: без отказа, спина нормально, махи пошли легче..."></textarea>
+        </div>
+
+        <div class="actions">
+          <button id="saveWorkout">Сохранить тренировку</button>
+          <button class="secondary" id="clearForm">Очистить</button>
+        </div>
+      </section>
+
+      <aside class="card">
+        <h2>Статистика</h2>
+        <div id="stats" class="stats"></div>
+        <div class="hr"></div>
+        <details>
+          <summary>Как лучше фиксировать</summary>
+          <ul class="small-list">
+            <li>Дата и длительность — чтобы видеть регулярность.</li>
+            <li>Подходы и повторы — чтобы видеть рост объёма.</li>
+            <li>Самочувствие — чтобы не загонять себя после тяжёлых рабочих дней.</li>
+            <li>Заметки — боль, сон, энергия, что было легко или тяжело.</li>
+          </ul>
+        </details>
+        <details style="margin-top:10px" open>
+          <summary>Установка на телефон и сохранение прогресса</summary>
+          <div class="backup-note">
+            Сейчас это локальное приложение: данные сохраняются в браузере на конкретном устройстве. Чтобы не потерять прогресс, главный файл для резервной копии — <b>JSON-бэкап</b>. CSV нужен больше для таблиц и анализа.
+          </div>
+          <div class="install-grid">
+            <div class="install-step"><b>1. Быстро</b><span>Открывать HTML-файл на телефоне. Работает без регистрации, но данные привязаны к браузеру и адресу файла.</span></div>
+            <div class="install-step"><b>2. Надёжнее</b><span>Раз в неделю скачивать JSON-бэкап и сохранять его в iCloud Drive / Google Drive / Яндекс Диск / Telegram.</span></div>
+            <div class="install-step"><b>3. Идеально</b><span>Выложить как онлайн/PWA-версию на домен. Тогда можно добавить на экран «Домой», обновлять дизайн и пользоваться с одного адреса.</span></div>
+          </div>
+          <div class="safe-badge">✓ JSON восстанавливает историю обратно в приложение</div>
+        </details>
+        <div class="actions">
+          <button class="secondary" id="seedWorkouts">Загрузить мои 5 тренировок</button>
+        </div>
+        <div class="actions">
+          <button class="secondary" id="exportJson">Скачать JSON-бэкап</button>
+          <button class="secondary" id="exportCsv">Экспорт CSV</button>
+          <button class="secondary" id="importBtn">Восстановить из JSON</button>
+          <input id="importFile" class="file-input" type="file" accept="application/json,.json">
+        </div>
+        <div class="actions">
+          <button class="warn" id="copySummary">Скопировать статистику</button>
+          <button class="secondary" id="copyBackup">Скопировать JSON</button>
+          <button class="secondary" id="copySaveGuide">Скопировать инструкцию</button>
+          <button class="danger" id="resetAll">Сбросить всё</button>
+        </div>
+      </aside>
+    </div>
+
+    <section class="card" style="margin-top:14px">
+      <div class="next-head">
+        <div>
+          <h2>Следующая тренировка</h2>
+          <div class="muted">После сегодняшней базы лучше сделать занятие B: спина, корпус, техника маха и умеренная выносливость. Halo не ставлю обязательным: с гирей 16 кг вокруг головы может быть тяжело для плеч.</div>
+        </div>
+        <div class="actions" style="margin-top:0">
+          <button id="loadNext">Загрузить в форму</button>
+          <button class="secondary" id="copyNext">Скопировать</button>
+        </div>
+      </div>
+      <div id="nextWorkout" style="margin-top:12px"></div>
+    </section>
+
+    <section class="card" style="margin-top:14px">
+      <div class="next-head">
+        <div>
+          <h2>План на гармоничное развитие</h2>
+          <div class="muted">Цель — не только махи, а полный баланс: ноги, тазовый шарнир, спина, жим, корпус, хват и мобильность. С учётом твоего графика: минимум 2 тренировки в неделю, третья — только если есть нормальный выходной или силы.</div>
+        </div>
+        <div class="actions" style="margin-top:0">
+          <button class="secondary" id="copyPlan">Скопировать план</button>
+        </div>
+      </div>
+      <div id="trainingPlan" class="plan-grid" style="margin-top:12px"></div>
+      <div class="hr"></div>
+      <h3>План на месяц с учётом графика работы</h3>
+      <div class="muted" style="margin-bottom:10px">Не привязывайся жёстко к дням недели. Если был день 7–1, сборка, мастер-класс или тяжёлая доставка — делай C или отдых. Главный минимум: 8 тренировок за месяц.</div>
+      <table class="table">
+        <thead><tr><th>Неделя</th><th>Минимум, если завал на работе</th><th>Оптимально, если силы есть</th><th>Акцент</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>A + B</td><td>A + B + C</td><td>Закрепить технику, не гнаться за объёмом.</td></tr>
+          <tr><td>2</td><td>A + B</td><td>A + B + C</td><td>Добавить 1–2 повтора в лёгких упражнениях.</td></tr>
+          <tr><td>3</td><td>A + B</td><td>A + B + C</td><td>Самая рабочая неделя: можно +1 подход в махах, если техника чистая.</td></tr>
+          <tr><td>4</td><td>C + A облегчённая</td><td>C + A облегчённая + прогулка/мобилити</td><td>Разгрузка, восстановление, без рекордов.</td></tr>
+        </tbody>
+      </table>
+      <div class="backup-note"><b>Правило выбора тренировки:</b> есть силы — A или B; устал после работы — C; поздно вечером — только C или 15 минут мобильности; болит спина/плечо — не тренироваться через боль.</div>
+    </section>
+
+    <section class="card" style="margin-top:14px">
+      <h2>История тренировок</h2>
+      <div id="history" class="history"></div>
+    </section>
+  </div>
+  <div id="toast" class="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'kettlebell_tracker_v1';
+  const exercises = [
+    'Разминка без гири',
+    'Гоблет-присед',
+    'Тяга гири с пола',
+    'Тяга гири в наклоне одной рукой',
+    'Махи двумя руками',
+    'Жим гири от груди вверх',
+    'Жим лёжа одной рукой',
+    'Выпады назад с гирей у груди',
+    'Перехваты вокруг корпуса',
+    'Мобильность плеч без гири',
+    'Halo / круги вокруг головы (опционально)',
+    'Подъём гири на грудь',
+    'Французский жим на трицепс',
+    'Чемоданная переноска',
+    'Фермерская прогулка',
+    'Планка / корпус',
+    'Мобильность / заминка',
+    'Другое'
+  ];
+
+  const templates = {
+    next: [
+      ['Разминка без гири', '1', '5 минут'],
+      ['Мобильность плеч без гири', '2', '8-10'],
+      ['Тяга гири в наклоне одной рукой', '3', '10-12 на руку'],
+      ['Жим лёжа одной рукой', '3', '8-10 на руку'],
+      ['Махи двумя руками', '4', '12-15'],
+      ['Чемоданная переноска', '3', '30-40 сек на сторону'],
+      ['Перехваты вокруг корпуса', '2', '10+10'],
+      ['Мобильность / заминка', '1', '3-5 минут']
+    ],
+    base: [
+      ['Гоблет-присед', '3', '10-15'],
+      ['Тяга гири с пола', '3', '12-15'],
+      ['Махи двумя руками', '3', '12-15'],
+      ['Жим гири от груди вверх', '3', '8-10 на руку'],
+      ['Перехваты вокруг корпуса', '3', '10+10'],
+      ['Французский жим на трицепс', '3', '10-12']
+    ],
+    strength: [
+      ['Разминка без гири', '1', '5 минут'],
+      ['Гоблет-присед', '3', '10-12'],
+      ['Тяга гири с пола', '3', '12'],
+      ['Жим гири от груди вверх', '3', '8 на руку'],
+      ['Тяга гири в наклоне одной рукой', '3', '10 на руку'],
+      ['Перехваты вокруг корпуса', '3', '10+10'],
+      ['Мобильность / заминка', '1', '3-5 минут']
+    ],
+    hinge: [
+      ['Разминка без гири', '1', '5 минут'],
+      ['Мобильность плеч без гири', '2', '8-10'],
+      ['Махи двумя руками', '5', '10-15'],
+      ['Подъём гири на грудь', '3', '5-6 на руку'],
+      ['Жим лёжа одной рукой', '3', '8-10 на руку'],
+      ['Чемоданная переноска', '3', '30-40 сек на сторону'],
+      ['Мобильность / заминка', '1', '3-5 минут']
+    ],
+    light: [
+      ['Разминка без гири', '1', '5 минут'],
+      ['Гоблет-присед', '2', '10 спокойно'],
+      ['Тяга гири с пола', '2', '10 спокойно'],
+      ['Мобильность плеч без гири', '2', '8-10'],
+      ['Перехваты вокруг корпуса', '2', '10+10'],
+      ['Фермерская прогулка', '2', '30 сек'],
+      ['Мобильность / заминка', '1', '5 минут']
+    ],
+    express: [
+      ['Гоблет-присед', '3', '10-12'],
+      ['Тяга гири с пола', '3', '10-12'],
+      ['Махи двумя руками', '4', '10-15'],
+      ['Перехваты вокруг корпуса', '3', '10+10']
+    ],
+    late: [
+      ['Гоблет-присед', '2', '10'],
+      ['Тяга гири с пола', '2', '10'],
+      ['Жим гири от груди вверх', '2', '8 на руку'],
+      ['Перехваты вокруг корпуса', '2', '8+8'],
+      ['Махи двумя руками', '2', '10 лёгкие']
+    ],
+    empty: []
+  };
+
+  const templateMeta = {
+    next: { duration: 28, intensity: 'Умеренная', notes: 'Следующая тренировка B: спина, корпус, техника маха. Halo пока не делаем с гирей 16 кг; если хочется попробовать — только без веса или очень осторожно. Без отказа, отдых 45–75 сек.' },
+    base: { duration: 25, intensity: 'Умеренная', notes: '3 круга, без работы в отказ.' },
+    strength: { duration: 30, intensity: 'Умеренная', notes: 'Тренировка A: сила и база. Спокойный темп, 2–3 повтора в запасе.' },
+    hinge: { duration: 28, intensity: 'Умеренная', notes: 'Тренировка B: махи, спина, корпус. Halo пока необязателен. Следить за техникой, не гнаться за пульсом.' },
+    light: { duration: 22, intensity: 'Лёгкая', notes: 'Тренировка C: лёгкая техника и восстановление. Хорошо после тяжёлого рабочего дня или позднего вечера.' },
+    express: { duration: 20, intensity: 'Умеренная', notes: 'Экспресс-тренировка.' },
+    late: { duration: 20, intensity: 'Лёгкая', notes: 'Поздняя лёгкая тренировка, спокойно, без разгона пульса.' },
+    empty: { duration: 25, intensity: 'Умеренная', notes: '' }
+  };
+
+  const templateGuides = {
+    next: {
+      title: 'Следующая тренировка B',
+      goal: 'Спина, корпус, техника маха и умеренная выносливость.',
+      when: 'После базовой тренировки A или когда хочется нагрузки без тяжёлого приседа.',
+      remember: ['Halo не обязателен', 'главное — ровная спина в махах', 'не доводить до отказа']
+    },
+    base: {
+      title: 'База 3 круга',
+      goal: 'Простая круговая тренировка на всё тело.',
+      when: 'Когда не хочется думать и нужна знакомая рабочая программа.',
+      remember: ['3 круга', '30–60 сек отдыха', 'оставить 2–3 повтора в запасе']
+    },
+    strength: {
+      title: 'A · сила и база',
+      goal: 'Ноги, спина, жим, корпус. Это главный фундамент.',
+      when: 'Лучше делать в день, когда есть силы: выходной, нормальный сон, не было тяжёлой сборки/доставки.',
+      remember: ['присед + тяга + жим', 'темп спокойный', 'не гнаться за пульсом']
+    },
+    hinge: {
+      title: 'B · махи, спина, корпус',
+      goal: 'Тазовый шарнир, спина, хват, корпус и техника маха.',
+      when: 'Хорошо после A или в день средней усталости, если нет боли в спине.',
+      remember: ['махи от таза, не руками', 'переноски держат корпус', 'halo пока не нужен']
+    },
+    light: {
+      title: 'C · лёгкая техника',
+      goal: 'Поддержать привычку, размяться и восстановиться.',
+      when: 'После тяжёлого рабочего дня, поздно вечером или когда энергии мало.',
+      remember: ['коротко и легко', 'без рекордов', 'можно заменить на 10–15 минут мобильности']
+    },
+    express: {
+      title: 'Экспресс 20 минут',
+      goal: 'Быстро сделать базу, когда времени мало.',
+      when: 'Когда есть 20 минут и хочется не пропустить тренировку.',
+      remember: ['меньше упражнений', 'плотный темп', 'лучше сделать коротко, чем пропустить']
+    },
+    late: {
+      title: 'Поздняя лёгкая',
+      goal: 'Мягко потренироваться без разгона нервной системы перед сном.',
+      when: 'Если начал поздно вечером.',
+      remember: ['без тяжёлых махов', 'не задыхаться', 'после — заминка и душ']
+    },
+    empty: {
+      title: 'Пустая тренировка',
+      goal: 'Собрать свою тренировку вручную.',
+      when: 'Когда хочешь записать что-то нестандартное.',
+      remember: ['добавь упражнения сам', 'запиши заметку', 'не забывай длительность']
+    }
+  };
+
+  const plan = [
+    {
+      code: 'A',
+      template: 'strength',
+      title: 'Сила и база',
+      meta: 'Ноги, спина, жим, корпус. Основа прогресса.',
+      items: ['Гоблет-присед 3×10–12', 'Тяга с пола 3×12', 'Жим вверх 3×8 на руку', 'Тяга в наклоне 3×10 на руку', 'Перехваты 3×10+10']
+    },
+    {
+      code: 'B',
+      template: 'hinge',
+      title: 'Махи, спина, корпус',
+      meta: 'Тазовый шарнир, хват, выносливость, техника. Без обязательного halo.',
+      items: ['Мобильность плеч без гири 2×8–10', 'Махи 4–5×10–15', 'Подъём на грудь 3×5–6 на руку', 'Жим лёжа 3×8–10 на руку', 'Чемоданная переноска 3×30–40 сек']
+    },
+    {
+      code: 'C',
+      template: 'light',
+      title: 'Лёгкая техника',
+      meta: 'День после усталости, позднего вечера или тяжёлой работы.',
+      items: ['Присед 2×10 спокойно', 'Тяга 2×10 спокойно', 'Мобильность плеч 2×8–10', 'Перехваты 2×10+10', 'Фермерская прогулка 2×30 сек', 'Заминка 5 минут']
+    }
+  ];
+
+  const initialWorkouts = [
+    {
+      id: 'seed-2026-06-15-01',
+      date: '2026-06-15',
+      duration: 30,
+      weight: 16,
+      intensity: 'Умеренная',
+      approximate: true,
+      notes: 'Первая тренировка с гирей 16 кг. Нагрузка чувствовалась в ногах и плечах, тяга показалась лёгкой, махи и работа спиной по ощущениям пошли правильно. Часть данных восстановлена по переписке.',
+      exercises: [
+        { name: 'Гоблет-присед', sets: 3, reps: '10' },
+        { name: 'Тяга гири с пола', sets: 3, reps: '10' },
+        { name: 'Махи двумя руками', sets: 5, reps: '10' },
+        { name: 'Жим лёжа одной рукой', sets: 3, reps: '8 на руку' },
+        { name: 'Перехваты вокруг корпуса', sets: 3, reps: '10+10' }
+      ]
+    },
+    {
+      id: 'seed-2026-06-18-02',
+      date: '2026-06-18',
+      duration: 20,
+      weight: 16,
+      intensity: 'Умеренная',
+      approximate: true,
+      notes: 'Вечерняя экспресс-тренировка после 4 часов установки унитаза и устранения протечки. Подъём гири на грудь был немного, поэтому объём указан приблизительно.',
+      exercises: [
+        { name: 'Гоблет-присед', sets: 3, reps: '10' },
+        { name: 'Тяга гири с пола', sets: 3, reps: '10' },
+        { name: 'Махи двумя руками', sets: 5, reps: '10' },
+        { name: 'Подъём гири на грудь', sets: 2, reps: '6 на руку' }
+      ]
+    },
+    {
+      id: 'seed-2026-06-20-03',
+      date: '2026-06-20',
+      duration: 25,
+      weight: 16,
+      intensity: 'Умеренная',
+      approximate: true,
+      notes: 'Вечерняя тренировка: приседы, махи, тяга, французский жим, перехваты и жим вверх от груди. Точные повторы не все фиксировались, поэтому указаны рабочие диапазоны.',
+      exercises: [
+        { name: 'Гоблет-присед', sets: 3, reps: '10-15' },
+        { name: 'Тяга гири с пола', sets: 3, reps: '10-15' },
+        { name: 'Махи двумя руками', sets: 3, reps: '10-15' },
+        { name: 'Французский жим на трицепс', sets: 3, reps: '10-12' },
+        { name: 'Перехваты вокруг корпуса', sets: 3, reps: '10+10' },
+        { name: 'Жим гири от груди вверх', sets: 3, reps: '8-10 на руку' }
+      ]
+    },
+    {
+      id: 'seed-2026-06-24-04',
+      date: '2026-06-24',
+      duration: 22,
+      weight: 16,
+      intensity: 'Лёгкая',
+      approximate: true,
+      notes: 'Поздняя короткая тренировка около 23:30 на 20–25 минут: спокойно, без работы в отказ, с разминкой и заминкой.',
+      exercises: [
+        { name: 'Гоблет-присед', sets: 2, reps: '10' },
+        { name: 'Тяга гири с пола', sets: 2, reps: '10' },
+        { name: 'Жим гири от груди вверх', sets: 2, reps: '8 на руку' },
+        { name: 'Перехваты вокруг корпуса', sets: 2, reps: '8+8' },
+        { name: 'Махи двумя руками', sets: 2, reps: '10 лёгкие' }
+      ]
+    },
+    {
+      id: 'seed-2026-06-26-05',
+      date: '2026-06-26',
+      duration: 25,
+      weight: 16,
+      intensity: 'Умеренная',
+      approximate: false,
+      notes: '3 круга, без работы в отказ. Разминка и заминка.',
+      exercises: [
+        { name: 'Гоблет-присед', sets: 3, reps: '10-15' },
+        { name: 'Тяга гири с пола', sets: 3, reps: '12-15' },
+        { name: 'Махи двумя руками', sets: 3, reps: '12-15' },
+        { name: 'Жим гири от груди вверх', sets: 3, reps: '8-10 на руку' },
+        { name: 'Перехваты вокруг корпуса', sets: 3, reps: '10+10' },
+        { name: 'Французский жим на трицепс', sets: 3, reps: '10-12' }
+      ]
+    }
+  ];
+
+  const $ = (id) => document.getElementById(id);
+
+  function todayISO() {
+    const d = new Date();
+    const offset = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - offset * 60 * 1000);
+    return local.toISOString().slice(0, 10);
+  }
+
+  function loadWorkouts() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      console.warn(e);
+      return [];
+    }
+  }
+
+  function saveWorkouts(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  function workoutSignature(w) {
+    const names = (w.exercises || []).map((e) => e.name).sort().join('|');
+    return `${w.date}|${names}`;
+  }
+
+  function hasSimilarWorkout(data, seed) {
+    const seedNames = new Set((seed.exercises || []).map((e) => e.name));
+    return data.some((w) => {
+      if (w.id === seed.id) return true;
+      if (workoutSignature(w) === workoutSignature(seed)) return true;
+      if (w.date !== seed.date) return false;
+      const matches = (w.exercises || []).filter((e) => seedNames.has(e.name)).length;
+      return matches >= Math.min(3, seedNames.size);
+    });
+  }
+
+  function addInitialWorkouts(showMessage) {
+    const data = loadWorkouts();
+    const toAdd = initialWorkouts.filter((seed) => !hasSimilarWorkout(data, seed));
+    if (!toAdd.length) {
+      if (showMessage) showToast('Стартовые тренировки уже есть');
+      return;
+    }
+    saveWorkouts([...data, ...toAdd]);
+    render();
+    if (showMessage) showToast(`Добавлено тренировок: ${toAdd.length}`);
+  }
+
+  function seedIfEmpty() {
+    if (loadWorkouts().length === 0) {
+      saveWorkouts(initialWorkouts);
+    }
+  }
+
+  function showToast(text) {
+    const toast = $('toast');
+    toast.textContent = text;
+    toast.style.display = 'block';
+    clearTimeout(showToast.timer);
+    showToast.timer = setTimeout(() => { toast.style.display = 'none'; }, 2200);
+  }
+
+  function optionHtml(selected) {
+    return exercises.map((name) => `<option value="${escapeHtml(name)}" ${name === selected ? 'selected' : ''}>${escapeHtml(name)}</option>`).join('');
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>'"]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\'':'&#39;', '"':'&quot;' }[c]));
+  }
+
+  function templateRows(key) {
+    return (templates[key] || []).map((x) => `${x[0]} — ${x[1]}×${x[2]}`);
+  }
+
+  function renderTemplateHint() {
+    const key = $('template').value;
+    const guide = templateGuides[key] || templateGuides.base;
+    const rows = templateRows(key);
+    $('templateHint').innerHTML = `
+      <div class="hint-title">${escapeHtml(guide.title)}</div>
+      <div class="hint-meta"><b>Цель:</b> ${escapeHtml(guide.goal)}<br><b>Когда выбирать:</b> ${escapeHtml(guide.when)}</div>
+      <div class="hint-cols">
+        <div>
+          <div class="mini-label">Состав</div>
+          <ul>${rows.length ? rows.map((i) => `<li>${escapeHtml(i)}</li>`).join('') : '<li>Заполни упражнения вручную</li>'}</ul>
+        </div>
+        <div>
+          <div class="mini-label">Запомнить</div>
+          <ul>${guide.remember.map((i) => `<li>${escapeHtml(i)}</li>`).join('')}</ul>
+        </div>
+      </div>`;
+  }
+
+  function addExerciseRow(name = 'Гоблет-присед', sets = '3', reps = '10-15') {
+    const wrap = document.createElement('div');
+    wrap.className = 'exercise';
+    wrap.innerHTML = `
+      <div class="wide">
+        <label>Упражнение</label>
+        <select class="ex-name">${optionHtml(name)}</select>
+      </div>
+      <div>
+        <label>Подходы</label>
+        <input class="ex-sets" type="number" inputmode="numeric" min="1" max="30" value="${escapeHtml(sets)}">
+      </div>
+      <div>
+        <label>Повторы</label>
+        <input class="ex-reps" type="text" value="${escapeHtml(reps)}" placeholder="10-15">
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button class="danger remove" type="button">×</button>
+      </div>`;
+    wrap.querySelector('.remove').addEventListener('click', () => wrap.remove());
+    $('exerciseList').appendChild(wrap);
+  }
+
+  function applyTemplate() {
+    $('exerciseList').innerHTML = '';
+    const key = $('template').value;
+    templates[key].forEach((item) => addExerciseRow(item[0], item[1], item[2]));
+    const meta = templateMeta[key] || templateMeta.base;
+    $('duration').value = meta.duration;
+    $('intensity').value = meta.intensity;
+    $('notes').value = meta.notes;
+    renderTemplateHint();
+  }
+
+  function collectForm() {
+    const items = Array.from(document.querySelectorAll('.exercise')).map((row) => ({
+      name: row.querySelector('.ex-name').value,
+      sets: Number(row.querySelector('.ex-sets').value || 0),
+      reps: row.querySelector('.ex-reps').value.trim()
+    })).filter((x) => x.name && x.sets > 0);
+
+    return {
+      id: String(Date.now()),
+      date: $('date').value || todayISO(),
+      duration: Number($('duration').value || 0),
+      weight: Number($('weight').value || 16),
+      intensity: $('intensity').value,
+      notes: $('notes').value.trim(),
+      exercises: items
+    };
+  }
+
+  function clearForm() {
+    $('date').value = todayISO();
+    $('weight').value = 16;
+    $('template').value = 'next';
+    applyTemplate();
+  }
+
+  function saveCurrentWorkout() {
+    const workout = collectForm();
+    if (!workout.exercises.length) {
+      showToast('Добавь хотя бы одно упражнение');
+      return;
+    }
+    const data = loadWorkouts();
+    data.push(workout);
+    saveWorkouts(data);
+    render();
+    showToast('Тренировка сохранена');
+  }
+
+  function parseReps(repsText) {
+    const text = String(repsText).replace(',', '.');
+    const nums = text.match(/\d+(?:\.\d+)?/g);
+    if (!nums || nums.length === 0) return 0;
+    const values = nums.map(Number);
+    if (text.includes('-') && values.length >= 2) return (values[0] + values[1]) / 2;
+    if (text.includes('+')) return values.reduce((a, b) => a + b, 0);
+    return values[0];
+  }
+
+  function calcStats(data) {
+    const now = new Date();
+    const seven = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirty = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const counts = {};
+    let sets = 0;
+    let volume = 0;
+    let minutes = 0;
+    const nonWorking = ['Разминка без гири', 'Мобильность / заминка', 'Мобильность плеч без гири'];
+    data.forEach((w) => {
+      minutes += Number(w.duration || 0);
+      (w.exercises || []).forEach((e) => {
+        if (nonWorking.includes(e.name)) return;
+        counts[e.name] = (counts[e.name] || 0) + 1;
+        sets += Number(e.sets || 0);
+        const repsText = String(e.reps || '').toLowerCase();
+        const isTimed = repsText.includes('сек') || repsText.includes('мин');
+        if (!isTimed) volume += Number(e.sets || 0) * parseReps(e.reps) * Number(w.weight || 0);
+      });
+    });
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    const recent7 = data.filter((w) => new Date(w.date) >= seven).length;
+    const recent30 = data.filter((w) => new Date(w.date) >= thirty).length;
+    const last = [...data].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+    return { total: data.length, recent7, recent30, top, sets, volume, minutes, last };
+  }
+
+  function formatDate(iso) {
+    if (!iso) return 'без даты';
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
+  }
+
+  function renderStats(data) {
+    const s = calcStats(data);
+    const topName = s.top ? `${s.top[0]} · ${s.top[1]} раз` : 'пока нет';
+    const lastText = s.last ? formatDate(s.last.date) : 'пока нет';
+    $('stats').innerHTML = `
+      <div class="stat"><div class="num">${s.total}</div><div class="txt">тренировок всего</div></div>
+      <div class="stat"><div class="num">${s.recent7}</div><div class="txt">за последние 7 дней</div></div>
+      <div class="stat"><div class="num">${s.recent30}</div><div class="txt">за последние 30 дней</div></div>
+      <div class="stat"><div class="num">${Math.round(s.minutes)}</div><div class="txt">минут тренировок</div></div>
+      <div class="stat"><div class="num">${s.sets}</div><div class="txt">рабочих подходов всего</div></div>
+      <div class="stat"><div class="num">${Math.round(s.volume).toLocaleString('ru-RU')}</div><div class="txt">примерный объём, кг×повт.</div></div>
+      <div class="stat"><div class="num" style="font-size:18px;line-height:1.2">${escapeHtml(topName)}</div><div class="txt">самое частое упражнение</div></div>
+      <div class="stat"><div class="num" style="font-size:18px;line-height:1.2">${escapeHtml(lastText)}</div><div class="txt">последняя тренировка</div></div>`;
+  }
+
+  function renderHistory(data) {
+    const box = $('history');
+    if (!data.length) {
+      box.innerHTML = '<div class="empty">История пока пустая. Сохрани первую тренировку — и статистика появится автоматически.</div>';
+      return;
+    }
+    const sorted = [...data].sort((a, b) => new Date(b.date) - new Date(a.date) || String(b.id).localeCompare(String(a.id)));
+    box.innerHTML = sorted.map((w) => {
+      const chips = (w.exercises || []).map((e) => `<span class="chip">${escapeHtml(e.name)} · ${escapeHtml(e.sets)}×${escapeHtml(e.reps)}</span>`).join('');
+      return `<div class="workout">
+        <div class="workout-top">
+          <div>
+            <div class="workout-date">${escapeHtml(formatDate(w.date))}</div>
+            <div class="workout-meta">${escapeHtml(w.duration || 0)} мин · ${escapeHtml(w.weight || 16)} кг · ${escapeHtml(w.intensity || '—')}${w.approximate ? ' · примерно' : ''}</div>
+          </div>
+          <button class="danger" type="button" data-delete="${escapeHtml(w.id)}">Удалить</button>
+        </div>
+        <div class="chips">${chips}</div>
+        ${w.approximate ? '<span class="pill">восстановлено по переписке</span>' : ''}
+        ${w.notes ? `<div class="tiny" style="margin-top:10px">${escapeHtml(w.notes)}</div>` : ''}
+      </div>`;
+    }).join('');
+    box.querySelectorAll('[data-delete]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-delete');
+        const next = loadWorkouts().filter((w) => w.id !== id);
+        saveWorkouts(next);
+        render();
+        showToast('Запись удалена');
+      });
+    });
+  }
+
+  function renderNextWorkout() {
+    const rows = templates.next.map((x) => `<tr><td>${escapeHtml(x[0])}</td><td>${escapeHtml(x[1])}</td><td>${escapeHtml(x[2])}</td></tr>`).join('');
+    $('nextWorkout').innerHTML = `<table class="table"><thead><tr><th>Упражнение</th><th>Подходы</th><th>Повторы</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  function renderPlan() {
+    $('trainingPlan').innerHTML = plan.map((p) => `<div class="plan-card">
+      <h3>${escapeHtml(p.code)} · ${escapeHtml(p.title)}</h3>
+      <div class="meta">${escapeHtml(p.meta)}</div>
+      <ul>${p.items.map((i) => `<li>${escapeHtml(i)}</li>`).join('')}</ul>
+      <div class="plan-buttons"><button class="secondary" type="button" data-load-template="${escapeHtml(p.template)}">Загрузить ${escapeHtml(p.code)} в форму</button></div>
+    </div>`).join('');
+    $('trainingPlan').querySelectorAll('[data-load-template]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        $('template').value = btn.getAttribute('data-load-template');
+        applyTemplate();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        showToast('Шаблон загружен');
+      });
+    });
+  }
+
+  function makeSummary(data) {
+    const s = calcStats(data);
+    const lines = [];
+    lines.push('Статистика тренировок с гирей:');
+    lines.push(`Всего тренировок: ${s.total}`);
+    lines.push(`За последние 7 дней: ${s.recent7}`);
+    lines.push(`За последние 30 дней: ${s.recent30}`);
+    lines.push(`Всего минут: ${Math.round(s.minutes)}`);
+    lines.push(`Всего рабочих подходов: ${s.sets}`);
+    lines.push(`Примерный объём: ${Math.round(s.volume).toLocaleString('ru-RU')} кг×повт.`);
+    if (s.top) lines.push(`Самое частое упражнение: ${s.top[0]} (${s.top[1]} раз)`);
+    if (s.last) lines.push(`Последняя тренировка: ${formatDate(s.last.date)}`);
+    return lines.join('\n');
+  }
+
+  function makeNextText() {
+    return [
+      'Следующая тренировка B — спина, корпус, техника маха, без обязательного halo:',
+      ...templates.next.map((x) => `• ${x[0]} — ${x[1]}×${x[2]}`),
+      'Темп: умеренно, без работы в отказ. Отдых 45–75 секунд.'
+    ].join('\n');
+  }
+
+  function makePlanText() {
+    const lines = ['План тренировок с гирей 16 кг: минимум 2 раза в неделю, оптимально 3 раза, но с учётом рабочего графика без героизма.'];
+    plan.forEach((p) => {
+      lines.push(`\n${p.code} — ${p.title}: ${p.meta}`);
+      p.items.forEach((i) => lines.push(`• ${i}`));
+    });
+    lines.push('\nПрогрессия: сначала добавлять повторы до верхней границы, затем 1 подход в одном упражнении. Каждая 4-я неделя — легче. Halo с гирей 16 кг пока необязателен; можно заменить мобильностью плеч без веса.');
+    return lines.join('\n');
+  }
+
+  function makeSaveGuide() {
+    return [
+      'Как сохранять прогресс в дневнике гири:',
+      '1. После тренировки нажать «Сохранить тренировку». Она сохранится в браузере на этом устройстве.',
+      '2. Раз в неделю нажать «Скачать JSON-бэкап». Это главный файл восстановления истории.',
+      '3. Сохранить JSON в iCloud Drive, Google Drive, Яндекс Диск или отправить себе в Telegram.',
+      '4. Если открыл приложение на новом телефоне или в другом браузере — нажать «Восстановить из JSON» и выбрать сохранённый файл.',
+      '5. CSV использовать для Excel / Google Sheets, но для восстановления приложения лучше JSON.',
+      'Лучший вариант на будущее: онлайн/PWA-версия на одном постоянном адресе. Тогда приложение можно добавить на экран телефона, а данные проще держать под контролем.'
+    ].join('\n');
+  }
+
+  async function copyText(text, success) {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(success);
+    } catch (e) {
+      window.prompt('Скопируй текст:', text);
+    }
+  }
+
+  function download(name, type, text) {
+    const blob = new Blob([text], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportCsv() {
+    const data = loadWorkouts();
+    const rows = [['date','duration','weight','intensity','approximate','exercise','sets','reps','notes']];
+    data.forEach((w) => {
+      (w.exercises || []).forEach((e) => {
+        rows.push([w.date, w.duration, w.weight, w.intensity, w.approximate ? 'yes' : 'no', e.name, e.sets, e.reps, w.notes || '']);
+      });
+    });
+    const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    download('kettlebell-workouts.csv', 'text/csv;charset=utf-8', csv);
+  }
+
+  function render() {
+    const data = loadWorkouts();
+    renderStats(data);
+    renderHistory(data);
+    renderNextWorkout();
+    renderPlan();
+  }
+
+  $('date').value = todayISO();
+  $('template').addEventListener('change', renderTemplateHint);
+  $('applyTemplate').addEventListener('click', applyTemplate);
+  $('addExercise').addEventListener('click', () => addExerciseRow());
+  $('saveWorkout').addEventListener('click', saveCurrentWorkout);
+  $('clearForm').addEventListener('click', clearForm);
+  $('loadNext').addEventListener('click', () => { $('template').value = 'next'; applyTemplate(); window.scrollTo({ top: 0, behavior: 'smooth' }); showToast('Следующая тренировка загружена'); });
+  $('copyNext').addEventListener('click', () => copyText(makeNextText(), 'Тренировка скопирована'));
+  $('copyPlan').addEventListener('click', () => copyText(makePlanText(), 'План скопирован'));
+  $('seedWorkouts').addEventListener('click', () => addInitialWorkouts(true));
+  $('exportJson').addEventListener('click', () => download('kettlebell-workouts.json', 'application/json;charset=utf-8', JSON.stringify(loadWorkouts(), null, 2)));
+  $('copyBackup').addEventListener('click', () => copyText(JSON.stringify(loadWorkouts(), null, 2), 'JSON скопирован'));
+  $('copySaveGuide').addEventListener('click', () => copyText(makeSaveGuide(), 'Инструкция скопирована'));
+  $('exportCsv').addEventListener('click', exportCsv);
+  $('importBtn').addEventListener('click', () => $('importFile').click());
+  $('importFile').addEventListener('change', async (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (!Array.isArray(parsed)) throw new Error('JSON должен быть массивом тренировок');
+      saveWorkouts(parsed);
+      render();
+      showToast('Импортировано');
+    } catch (e) {
+      showToast('Не удалось импортировать JSON');
+      console.error(e);
+    }
+    event.target.value = '';
+  });
+  $('copySummary').addEventListener('click', () => copyText(makeSummary(loadWorkouts()), 'Статистика скопирована'));
+  $('resetAll').addEventListener('click', () => {
+    if (confirm('Удалить все тренировки из этого браузера?')) {
+      saveWorkouts([]);
+      render();
+      showToast('История очищена');
+    }
+  });
+
+  seedIfEmpty();
+  clearForm();
+  render();
+})();
+</script>
+</body>
+</html>
