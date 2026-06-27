@@ -109,6 +109,32 @@
     .install-step b { display:block; margin-bottom:5px; }
     .install-step span { color:var(--muted); font-size:13px; line-height:1.45; }
     .safe-badge { display:inline-flex; gap:6px; align-items:center; border:1px solid rgba(132,214,90,.25); background:rgba(132,214,90,.08); color:var(--text); padding:7px 10px; border-radius:999px; font-size:12px; font-weight:800; margin-top:8px; }
+
+    .analytics-grid { display:grid; grid-template-columns: 1.15fr .85fr; gap:12px; margin-top:12px; }
+    @media (max-width: 860px) { .analytics-grid { grid-template-columns:1fr; } }
+    .analytics-box { background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:16px; padding:14px; }
+    .analytics-box h3 { margin:0 0 10px; }
+    .bar-list { display:grid; gap:10px; }
+    .bar-row { display:grid; grid-template-columns: 105px 1fr; gap:10px; align-items:center; }
+    @media (max-width: 480px) { .bar-row { grid-template-columns:1fr; gap:6px; } }
+    .bar-label { color:var(--muted); font-size:12px; line-height:1.25; }
+    .bar-track { height:12px; border-radius:999px; background:rgba(255,255,255,.08); overflow:hidden; border:1px solid rgba(255,255,255,.08); }
+    .bar-fill { height:100%; border-radius:999px; background:linear-gradient(90deg, var(--accent), rgba(242,189,94,.88)); min-width:2px; }
+    .bar-value { margin-top:4px; color:var(--text); font-size:12px; font-weight:800; }
+    .week-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; }
+    @media (max-width: 700px) { .week-grid { grid-template-columns:1fr 1fr; } }
+    @media (max-width: 420px) { .week-grid { grid-template-columns:1fr; } }
+    .week-card { border:1px solid var(--line); border-radius:15px; padding:10px; background:rgba(255,255,255,.035); }
+    .week-card b { display:block; font-size:13px; margin-bottom:8px; }
+    .week-metric { margin-top:7px; }
+    .week-metric .metric-top { display:flex; justify-content:space-between; gap:8px; color:var(--muted); font-size:11px; margin-bottom:4px; }
+    .progress-target { margin-top:12px; border:1px solid rgba(132,214,90,.22); background:rgba(132,214,90,.06); border-radius:16px; padding:12px; }
+    .progress-target .big { font-size:22px; font-weight:950; letter-spacing:-.03em; }
+    .insight-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px; }
+    @media (max-width: 760px) { .insight-grid { grid-template-columns:1fr; } }
+    .insight { border:1px solid var(--line); border-radius:15px; padding:11px; background:rgba(255,255,255,.035); }
+    .insight b { display:block; margin-bottom:4px; }
+    .insight span { color:var(--muted); font-size:13px; line-height:1.4; }
   </style>
 </head>
 <body>
@@ -156,7 +182,7 @@
           <div>
             <label for="template">Шаблон</label>
             <select id="template">
-              <option value="next">Следующая тренировка B</option>
+              <option value="next">Следующая тренировка</option>
               <option value="base">База 3 круга</option>
               <option value="strength">A · сила и база</option>
               <option value="hinge">B · махи, спина, корпус</option>
@@ -204,7 +230,7 @@
         <details style="margin-top:10px" open>
           <summary>Установка на телефон и сохранение прогресса</summary>
           <div class="backup-note">
-            Сейчас это локальное приложение: данные сохраняются в браузере на конкретном устройстве. Чтобы не потерять прогресс, главный файл для резервной копии — <b>JSON-бэкап</b>. CSV нужен больше для таблиц и анализа.
+            Сейчас это локальное приложение: данные сохраняются в браузере на конкретном устройстве, а незавершённая форма автосохраняется как черновик. Чтобы не потерять прогресс, главный файл для резервной копии — <b>JSON-бэкап</b>. CSV нужен больше для таблиц и анализа.
           </div>
           <div class="install-grid">
             <div class="install-step"><b>1. Быстро</b><span>Открывать HTML-файл на телефоне. Работает без регистрации, но данные привязаны к браузеру и адресу файла.</span></div>
@@ -234,8 +260,21 @@
     <section class="card" style="margin-top:14px">
       <div class="next-head">
         <div>
+          <h2>Аналитика прогресса</h2>
+          <div class="muted">Графики считаются из истории тренировок: регулярность по неделям, минуты, примерный объём и самые частые упражнения.</div>
+        </div>
+        <div class="actions" style="margin-top:0">
+          <button class="secondary" id="copyAnalytics">Скопировать аналитику</button>
+        </div>
+      </div>
+      <div id="analytics" class="analytics-grid"></div>
+    </section>
+
+    <section class="card" style="margin-top:14px">
+      <div class="next-head">
+        <div>
           <h2>Следующая тренировка</h2>
-          <div class="muted">После сегодняшней базы лучше сделать занятие B: спина, корпус, техника маха и умеренная выносливость. Halo не ставлю обязательным: с гирей 16 кг вокруг головы может быть тяжело для плеч.</div>
+          <div id="nextWorkoutNote" class="muted"></div>
         </div>
         <div class="actions" style="margin-top:0">
           <button id="loadNext">Загрузить в форму</button>
@@ -283,6 +322,11 @@
   'use strict';
 
   const STORAGE_KEY = 'kettlebell_tracker_v1';
+  const DRAFT_KEY = 'kettlebell_tracker_draft_v1';
+  const LAST_BACKUP_KEY = 'kettlebell_tracker_last_backup_v1';
+  const APP_VERSION = '2026-06-27-analytics';
+  let isSaving = false;
+  let draftTimer = null;
   const exercises = [
     'Разминка без гири',
     'Гоблет-присед',
@@ -367,7 +411,7 @@
   };
 
   const templateMeta = {
-    next: { duration: 28, intensity: 'Умеренная', notes: 'Следующая тренировка B: спина, корпус, техника маха. Halo пока не делаем с гирей 16 кг; если хочется попробовать — только без веса или очень осторожно. Без отказа, отдых 45–75 сек.' },
+    next: { duration: 28, intensity: 'Умеренная', notes: 'Следующая тренировка по плану. Приложение выбирает A/B/C по последней сохранённой тренировке.' },
     base: { duration: 25, intensity: 'Умеренная', notes: '3 круга, без работы в отказ.' },
     strength: { duration: 30, intensity: 'Умеренная', notes: 'Тренировка A: сила и база. Спокойный темп, 2–3 повтора в запасе.' },
     hinge: { duration: 28, intensity: 'Умеренная', notes: 'Тренировка B: махи, спина, корпус. Halo пока необязателен. Следить за техникой, не гнаться за пульсом.' },
@@ -379,7 +423,7 @@
 
   const templateGuides = {
     next: {
-      title: 'Следующая тренировка B',
+      title: 'Следующая тренировка',
       goal: 'Спина, корпус, техника маха и умеренная выносливость.',
       when: 'После базовой тренировки A или когда хочется нагрузки без тяжёлого приседа.',
       remember: ['Halo не обязателен', 'главное — ровная спина в махах', 'не доводить до отказа']
@@ -427,6 +471,19 @@
       remember: ['добавь упражнения сам', 'запиши заметку', 'не забывай длительность']
     }
   };
+
+
+  const templateLabels = {
+    strength: 'A · сила и база',
+    hinge: 'B · махи, спина, корпус',
+    light: 'C · лёгкая техника',
+    base: 'База 3 круга',
+    express: 'Экспресс 20 минут',
+    late: 'Поздняя лёгкая',
+    empty: 'Пустая тренировка'
+  };
+
+  const nonWorkingExercises = ['Разминка без гири', 'Мобильность / заминка', 'Мобильность плеч без гири'];
 
   const plan = [
     {
@@ -545,11 +602,50 @@
     return local.toISOString().slice(0, 10);
   }
 
+  function newId() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function normalizeWorkout(w) {
+    const safe = w && typeof w === 'object' ? w : {};
+    const exercisesList = Array.isArray(safe.exercises) ? safe.exercises : [];
+    const normalized = {
+      id: safe.id ? String(safe.id) : newId(),
+      template: safe.template ? String(safe.template) : undefined,
+      selectedTemplate: safe.selectedTemplate ? String(safe.selectedTemplate) : undefined,
+      date: /^\d{4}-\d{2}-\d{2}$/.test(String(safe.date || '')) ? String(safe.date) : todayISO(),
+      duration: Math.max(0, Number(safe.duration || 0)),
+      weight: Math.max(0, Number(safe.weight || 16)),
+      intensity: ['Лёгкая', 'Умеренная', 'Тяжёлая'].includes(safe.intensity) ? safe.intensity : 'Умеренная',
+      approximate: Boolean(safe.approximate),
+      notes: String(safe.notes || ''),
+      exercises: exercisesList.map((e) => ({
+        name: String((e && e.name) || 'Другое'),
+        sets: Math.max(0, Number((e && e.sets) || 0)),
+        reps: String((e && e.reps) || '').trim()
+      })).filter((e) => e.name && e.sets > 0)
+    };
+    Object.keys(normalized).forEach((key) => normalized[key] === undefined && delete normalized[key]);
+    return normalized;
+  }
+
+  function normalizeWorkouts(list) {
+    if (!Array.isArray(list)) return [];
+    const seen = new Set();
+    return list.map(normalizeWorkout).filter((w) => {
+      if (!w.exercises.length) return false;
+      if (seen.has(w.id)) w.id = newId();
+      seen.add(w.id);
+      return true;
+    });
+  }
+
   function loadWorkouts() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      return normalizeWorkouts(parsed);
     } catch (e) {
       console.warn(e);
       return [];
@@ -557,7 +653,7 @@
   }
 
   function saveWorkouts(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeWorkouts(data)));
   }
 
   function workoutSignature(w) {
@@ -610,13 +706,80 @@
     return String(str).replace(/[&<>'"]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\'':'&#39;', '"':'&quot;' }[c]));
   }
 
+  function getLatestWorkout(data) {
+    return [...data].sort((a, b) => new Date(b.date) - new Date(a.date) || String(b.id).localeCompare(String(a.id)))[0] || null;
+  }
+
+  function classifyWorkout(w) {
+    if (!w) return 'base';
+    const savedTemplate = w.template === 'next' ? 'hinge' : w.template;
+    if (savedTemplate && templates[savedTemplate]) return savedTemplate;
+    const names = (w.exercises || []).map((e) => String(e.name || '').toLowerCase()).join(' | ');
+    if (w.intensity === 'Лёгкая' || Number(w.duration || 0) <= 22) return 'light';
+    if (names.includes('чемоданная') || names.includes('жим лёжа') || names.includes('подъём гири на грудь')) return 'hinge';
+    if (names.includes('тяга гири в наклоне') || names.includes('жим гири от груди вверх')) return 'strength';
+    if (names.includes('французский')) return 'base';
+    return 'base';
+  }
+
+  function getRecommendation(data = loadWorkouts()) {
+    const last = getLatestWorkout(data);
+    if (!last) {
+      return {
+        key: 'hinge',
+        reason: 'История пока пустая. Для старта предлагаю B: спина, корпус и техника маха без тяжёлого приседа.'
+      };
+    }
+    const lastType = classifyWorkout(last);
+    if (last.intensity === 'Тяжёлая') {
+      return { key: 'light', reason: 'Последняя тренировка была тяжёлой, поэтому следующая — C: лёгкая техника и восстановление.' };
+    }
+    if (lastType === 'strength') {
+      return { key: 'hinge', reason: 'После A лучше сделать B: махи, спина, корпус и переноски без тяжёлого приседа.' };
+    }
+    if (lastType === 'hinge') {
+      return { key: 'strength', reason: 'После B логично вернуться к A: сила и база — ноги, тяга, жим и корпус.' };
+    }
+    if (lastType === 'light' || lastType === 'late') {
+      return { key: 'strength', reason: 'После лёгкой тренировки можно делать A, если есть силы. Если день тяжёлый — выбери C вручную.' };
+    }
+    if (lastType === 'express') {
+      return { key: 'strength', reason: 'После экспресс-тренировки лучше вернуться к полноценной A, если есть силы.' };
+    }
+    return { key: 'hinge', reason: 'После базовой круговой тренировки лучше сделать B: спина, корпус и техника маха.' };
+  }
+
+  function resolveTemplateKey(key) {
+    return key === 'next' ? getRecommendation().key : key;
+  }
+
+  function getTemplateGuide(key) {
+    if (key !== 'next') return templateGuides[key] || templateGuides.base;
+    const rec = getRecommendation();
+    const guide = templateGuides[rec.key] || templateGuides.base;
+    return {
+      ...guide,
+      title: `Следующая тренировка: ${templateLabels[rec.key] || guide.title}`,
+      when: rec.reason
+    };
+  }
+
+  function getTemplateMeta(key) {
+    const actualKey = resolveTemplateKey(key);
+    const meta = templateMeta[actualKey] || templateMeta.base;
+    if (key !== 'next') return meta;
+    const rec = getRecommendation();
+    return { ...meta, notes: `Следующая тренировка: ${templateLabels[rec.key] || 'по плану'}. ${rec.reason} ${meta.notes}` };
+  }
+
   function templateRows(key) {
-    return (templates[key] || []).map((x) => `${x[0]} — ${x[1]}×${x[2]}`);
+    const actualKey = resolveTemplateKey(key);
+    return (templates[actualKey] || []).map((x) => `${x[0]} — ${x[1]}×${x[2]}`);
   }
 
   function renderTemplateHint() {
     const key = $('template').value;
-    const guide = templateGuides[key] || templateGuides.base;
+    const guide = getTemplateGuide(key);
     const rows = templateRows(key);
     $('templateHint').innerHTML = `
       <div class="hint-title">${escapeHtml(guide.title)}</div>
@@ -659,9 +822,10 @@
 
   function applyTemplate() {
     $('exerciseList').innerHTML = '';
-    const key = $('template').value;
-    templates[key].forEach((item) => addExerciseRow(item[0], item[1], item[2]));
-    const meta = templateMeta[key] || templateMeta.base;
+    const selectedKey = $('template').value;
+    const key = resolveTemplateKey(selectedKey);
+    (templates[key] || []).forEach((item) => addExerciseRow(item[0], item[1], item[2]));
+    const meta = getTemplateMeta(selectedKey);
     $('duration').value = meta.duration;
     $('intensity').value = meta.intensity;
     $('notes').value = meta.notes;
@@ -675,8 +839,12 @@
       reps: row.querySelector('.ex-reps').value.trim()
     })).filter((x) => x.name && x.sets > 0);
 
+    const selectedTemplate = $('template').value;
+    const actualTemplate = resolveTemplateKey(selectedTemplate);
     return {
-      id: String(Date.now()),
+      id: newId(),
+      template: actualTemplate,
+      selectedTemplate,
       date: $('date').value || todayISO(),
       duration: Number($('duration').value || 0),
       weight: Number($('weight').value || 16),
@@ -686,6 +854,47 @@
     };
   }
 
+  function getDraftForm() {
+    return { savedAt: new Date().toISOString(), workout: collectForm() };
+  }
+
+  function saveDraftSoon() {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => {
+      try {
+        const workout = collectForm();
+        if (workout.exercises.length || workout.notes) {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: new Date().toISOString(), workout }));
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+    }, 250);
+  }
+
+  function restoreDraftIfUseful() {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      const workout = normalizeWorkout(parsed.workout || parsed);
+      if (!workout.exercises.length) return false;
+      $('date').value = workout.date || todayISO();
+      $('duration').value = workout.duration || 25;
+      $('weight').value = workout.weight || 16;
+      $('intensity').value = workout.intensity || 'Умеренная';
+      $('template').value = workout.selectedTemplate || workout.template || 'next';
+      $('notes').value = workout.notes || '';
+      $('exerciseList').innerHTML = '';
+      workout.exercises.forEach((e) => addExerciseRow(e.name, e.sets, e.reps));
+      renderTemplateHint();
+      return true;
+    } catch (e) {
+      console.warn(e);
+      return false;
+    }
+  }
+
   function clearForm() {
     $('date').value = todayISO();
     $('weight').value = 16;
@@ -693,27 +902,47 @@
     applyTemplate();
   }
 
+  function isLikelyDuplicate(workout, data) {
+    const incoming = workoutSignature(workout);
+    return data.some((w) => workoutSignature(w) === incoming);
+  }
+
   function saveCurrentWorkout() {
-    const workout = collectForm();
-    if (!workout.exercises.length) {
-      showToast('Добавь хотя бы одно упражнение');
-      return;
+    if (isSaving) return;
+    isSaving = true;
+    try {
+      const workout = collectForm();
+      if (!workout.exercises.length) {
+        showToast('Добавь хотя бы одно упражнение');
+        return;
+      }
+      const data = loadWorkouts();
+      if (isLikelyDuplicate(workout, data) && !confirm('Похоже, такая тренировка на эту дату уже есть. Всё равно сохранить дубль?')) {
+        return;
+      }
+      data.push(workout);
+      saveWorkouts(data);
+      localStorage.removeItem(DRAFT_KEY);
+      clearForm();
+      render();
+      showToast('Тренировка сохранена, следующая обновлена');
+    } finally {
+      isSaving = false;
     }
-    const data = loadWorkouts();
-    data.push(workout);
-    saveWorkouts(data);
-    render();
-    showToast('Тренировка сохранена');
   }
 
   function parseReps(repsText) {
-    const text = String(repsText).replace(',', '.');
+    const text = String(repsText).toLowerCase().replace(',', '.');
     const nums = text.match(/\d+(?:\.\d+)?/g);
     if (!nums || nums.length === 0) return 0;
     const values = nums.map(Number);
-    if (text.includes('-') && values.length >= 2) return (values[0] + values[1]) / 2;
-    if (text.includes('+')) return values.reduce((a, b) => a + b, 0);
-    return values[0];
+    let reps;
+    if (text.includes('+')) reps = values.reduce((a, b) => a + b, 0);
+    else if (text.includes('-') && values.length >= 2) reps = (values[0] + values[1]) / 2;
+    else reps = values[0];
+    const unilateral = /(на руку|на сторону|каждую руку|каждую сторону)/.test(text);
+    if (unilateral && !text.includes('+')) reps *= 2;
+    return reps;
   }
 
   function calcStats(data) {
@@ -724,11 +953,10 @@
     let sets = 0;
     let volume = 0;
     let minutes = 0;
-    const nonWorking = ['Разминка без гири', 'Мобильность / заминка', 'Мобильность плеч без гири'];
     data.forEach((w) => {
       minutes += Number(w.duration || 0);
       (w.exercises || []).forEach((e) => {
-        if (nonWorking.includes(e.name)) return;
+        if (nonWorkingExercises.includes(e.name)) return;
         counts[e.name] = (counts[e.name] || 0) + 1;
         sets += Number(e.sets || 0);
         const repsText = String(e.reps || '').toLowerCase();
@@ -739,8 +967,11 @@
     const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
     const recent7 = data.filter((w) => new Date(w.date) >= seven).length;
     const recent30 = data.filter((w) => new Date(w.date) >= thirty).length;
-    const last = [...data].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-    return { total: data.length, recent7, recent30, top, sets, volume, minutes, last };
+    const last = [...data].sort((a, b) => new Date(b.date) - new Date(a.date) || String(b.id).localeCompare(String(a.id)))[0];
+    const lastBackupRaw = localStorage.getItem(LAST_BACKUP_KEY);
+    const lastBackupDate = lastBackupRaw ? new Date(lastBackupRaw) : null;
+    const needsBackup = data.length > 0 && (!lastBackupDate || Number.isNaN(lastBackupDate.getTime()) || (now - lastBackupDate) > 7 * 24 * 60 * 60 * 1000);
+    return { total: data.length, recent7, recent30, top, sets, volume, minutes, last, needsBackup, lastBackupDate };
   }
 
   function formatDate(iso) {
@@ -761,7 +992,157 @@
       <div class="stat"><div class="num">${s.sets}</div><div class="txt">рабочих подходов всего</div></div>
       <div class="stat"><div class="num">${Math.round(s.volume).toLocaleString('ru-RU')}</div><div class="txt">примерный объём, кг×повт.</div></div>
       <div class="stat"><div class="num" style="font-size:18px;line-height:1.2">${escapeHtml(topName)}</div><div class="txt">самое частое упражнение</div></div>
-      <div class="stat"><div class="num" style="font-size:18px;line-height:1.2">${escapeHtml(lastText)}</div><div class="txt">последняя тренировка</div></div>`;
+      <div class="stat"><div class="num" style="font-size:18px;line-height:1.2">${escapeHtml(lastText)}</div><div class="txt">последняя тренировка</div></div>
+      <div class="stat"><div class="num" style="font-size:18px;line-height:1.2">${s.needsBackup ? 'нужен' : 'ок'}</div><div class="txt">статус бэкапа JSON</div></div>`;
+  }
+
+
+  function toDate(iso) {
+    const d = new Date(String(iso || '') + 'T00:00:00');
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  function shortDate(d) {
+    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '');
+  }
+
+  function weekStart(date) {
+    const d = new Date(date);
+    const day = d.getDay() || 7;
+    d.setDate(d.getDate() - day + 1);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  function formatNumberShort(value) {
+    const n = Number(value || 0);
+    if (n >= 1000000) return (n / 1000000).toFixed(1).replace('.', ',') + ' млн';
+    if (n >= 1000) return Math.round(n).toLocaleString('ru-RU');
+    return Math.round(n).toLocaleString('ru-RU');
+  }
+
+  function getExerciseLoad(workout, exercise) {
+    if (!workout || !exercise || nonWorkingExercises.includes(exercise.name)) return 0;
+    const repsText = String(exercise.reps || '').toLowerCase();
+    if (repsText.includes('сек') || repsText.includes('мин')) return 0;
+    return Number(exercise.sets || 0) * parseReps(exercise.reps) * Number(workout.weight || 0);
+  }
+
+  function calcAnalytics(data) {
+    const workouts = normalizeWorkouts(data || []);
+    const now = new Date();
+    const currentMonday = weekStart(now);
+    const weeks = [];
+    for (let i = 3; i >= 0; i -= 1) {
+      const start = new Date(currentMonday);
+      start.setDate(currentMonday.getDate() - i * 7);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      weeks.push({
+        key: start.toISOString().slice(0, 10),
+        label: `${shortDate(start)} — ${shortDate(end)}`,
+        workouts: 0,
+        minutes: 0,
+        volume: 0
+      });
+    }
+    const byKey = Object.fromEntries(weeks.map((w) => [w.key, w]));
+    const exerciseCounts = {};
+    const templateCounts = {};
+    workouts.forEach((w) => {
+      const date = toDate(w.date);
+      if (!date) return;
+      const wk = weekStart(date).toISOString().slice(0, 10);
+      if (byKey[wk]) {
+        byKey[wk].workouts += 1;
+        byKey[wk].minutes += Number(w.duration || 0);
+      }
+      const type = classifyWorkout(w);
+      templateCounts[type] = (templateCounts[type] || 0) + 1;
+      (w.exercises || []).forEach((e) => {
+        if (!e || nonWorkingExercises.includes(e.name)) return;
+        exerciseCounts[e.name] = (exerciseCounts[e.name] || 0) + 1;
+        if (byKey[wk]) byKey[wk].volume += getExerciseLoad(w, e);
+      });
+    });
+    const topExercises = Object.entries(exerciseCounts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ru')).slice(0, 7);
+    const max = {
+      workouts: Math.max(1, ...weeks.map((w) => w.workouts)),
+      minutes: Math.max(1, ...weeks.map((w) => w.minutes)),
+      volume: Math.max(1, ...weeks.map((w) => w.volume)),
+      exercise: Math.max(1, ...topExercises.map((x) => x[1]))
+    };
+    const last30 = workouts.filter((w) => {
+      const d = toDate(w.date);
+      return d && (now - d) <= 30 * 24 * 60 * 60 * 1000;
+    }).length;
+    const target = 8;
+    const targetPct = Math.min(100, Math.round((last30 / target) * 100));
+    const monthAdvice = last30 >= target ? 'Минимум месяца выполнен. Дальше держи ритм без перегруза.' : `До минимальной цели осталось ${Math.max(0, target - last30)} тренировк${target - last30 === 1 ? 'а' : 'и'}.`;
+    return { weeks, topExercises, max, last30, target, targetPct, monthAdvice, templateCounts };
+  }
+
+  function barHtml(value, max, suffix = '') {
+    const pct = Math.max(2, Math.min(100, Math.round((Number(value || 0) / Math.max(1, max)) * 100)));
+    return `<div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><div class="bar-value">${formatNumberShort(value)}${suffix}</div>`;
+  }
+
+  function makeAnalyticsText(data) {
+    const a = calcAnalytics(data);
+    const lines = ['Аналитика прогресса:'];
+    lines.push(`За последние 30 дней: ${a.last30}/${a.target} тренировок (${a.targetPct}%). ${a.monthAdvice}`);
+    lines.push('\nПоследние 4 недели:');
+    a.weeks.forEach((w) => lines.push(`• ${w.label}: ${w.workouts} трен., ${Math.round(w.minutes)} мин, ${Math.round(w.volume).toLocaleString('ru-RU')} кг×повт.`));
+    if (a.topExercises.length) {
+      lines.push('\nСамые частые упражнения:');
+      a.topExercises.forEach(([name, count]) => lines.push(`• ${name}: ${count} раз`));
+    }
+    return lines.join('\n');
+  }
+
+  function renderAnalytics(data) {
+    const box = $('analytics');
+    if (!box) return;
+    if (!data.length) {
+      box.innerHTML = '<div class="empty">Пока нет данных для аналитики. Сохрани тренировку — и графики появятся автоматически.</div>';
+      return;
+    }
+    const a = calcAnalytics(data);
+    const weeksHtml = a.weeks.map((w) => `<div class="week-card">
+      <b>${escapeHtml(w.label)}</b>
+      <div class="week-metric"><div class="metric-top"><span>тренировки</span><span>${w.workouts}</span></div>${barHtml(w.workouts, a.max.workouts)}</div>
+      <div class="week-metric"><div class="metric-top"><span>минуты</span><span>${Math.round(w.minutes)}</span></div>${barHtml(w.minutes, a.max.minutes, ' мин')}</div>
+      <div class="week-metric"><div class="metric-top"><span>объём</span><span>${formatNumberShort(w.volume)}</span></div>${barHtml(w.volume, a.max.volume)}</div>
+    </div>`).join('');
+    const exercisesHtml = a.topExercises.length ? a.topExercises.map(([name, count]) => `<div class="bar-row">
+      <div class="bar-label">${escapeHtml(name)}</div>
+      <div>${barHtml(count, a.max.exercise, ' раз')}</div>
+    </div>`).join('') : '<div class="empty">Упражнения пока не накопились.</div>';
+    const templateA = a.templateCounts.strength || 0;
+    const templateB = a.templateCounts.hinge || 0;
+    const templateC = a.templateCounts.light || 0;
+    box.innerHTML = `
+      <div class="analytics-box">
+        <h3>Последние 4 недели</h3>
+        <div class="week-grid">${weeksHtml}</div>
+        <div class="progress-target">
+          <div class="big">${a.last30}/${a.target} тренировок за 30 дней</div>
+          <div class="muted" style="margin-top:5px">${escapeHtml(a.monthAdvice)}</div>
+          <div style="margin-top:10px">${barHtml(a.last30, a.target)}</div>
+        </div>
+      </div>
+      <div class="analytics-box">
+        <h3>Самые частые упражнения</h3>
+        <div class="bar-list">${exercisesHtml}</div>
+      </div>
+      <div class="analytics-box" style="grid-column:1 / -1">
+        <h3>Баланс программы</h3>
+        <div class="insight-grid">
+          <div class="insight"><b>A · сила и база: ${templateA}</b><span>Фундамент: ноги, спина, жим, корпус. Делай, когда есть силы.</span></div>
+          <div class="insight"><b>B · махи и корпус: ${templateB}</b><span>Техника маха, тазовый шарнир, хват и переноски. Хорошо чередовать с A.</span></div>
+          <div class="insight"><b>C · лёгкая техника: ${templateC}</b><span>Нужна после тяжёлой работы, позднего вечера или усталости, чтобы не сорвать регулярность.</span></div>
+        </div>
+      </div>`;
   }
 
   function renderHistory(data) {
@@ -777,7 +1158,7 @@
         <div class="workout-top">
           <div>
             <div class="workout-date">${escapeHtml(formatDate(w.date))}</div>
-            <div class="workout-meta">${escapeHtml(w.duration || 0)} мин · ${escapeHtml(w.weight || 16)} кг · ${escapeHtml(w.intensity || '—')}${w.approximate ? ' · примерно' : ''}</div>
+            <div class="workout-meta">${escapeHtml(w.duration || 0)} мин · ${escapeHtml(w.weight || 16)} кг · ${escapeHtml(w.intensity || '—')}${w.template ? ' · ' + escapeHtml(templateLabels[w.template] || w.template) : ''}${w.approximate ? ' · примерно' : ''}</div>
           </div>
           <button class="danger" type="button" data-delete="${escapeHtml(w.id)}">Удалить</button>
         </div>
@@ -798,8 +1179,10 @@
   }
 
   function renderNextWorkout() {
-    const rows = templates.next.map((x) => `<tr><td>${escapeHtml(x[0])}</td><td>${escapeHtml(x[1])}</td><td>${escapeHtml(x[2])}</td></tr>`).join('');
-    $('nextWorkout').innerHTML = `<table class="table"><thead><tr><th>Упражнение</th><th>Подходы</th><th>Повторы</th></tr></thead><tbody>${rows}</tbody></table>`;
+    const rec = getRecommendation(loadWorkouts());
+    const rows = (templates[rec.key] || []).map((x) => `<tr><td>${escapeHtml(x[0])}</td><td>${escapeHtml(x[1])}</td><td>${escapeHtml(x[2])}</td></tr>`).join('');
+    if ($('nextWorkoutNote')) $('nextWorkoutNote').textContent = rec.reason;
+    $('nextWorkout').innerHTML = `<div class="safe-badge">Рекомендация: ${escapeHtml(templateLabels[rec.key] || rec.key)}</div><table class="table" style="margin-top:10px"><thead><tr><th>Упражнение</th><th>Подходы</th><th>Повторы</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
 
   function renderPlan() {
@@ -835,9 +1218,11 @@
   }
 
   function makeNextText() {
+    const rec = getRecommendation(loadWorkouts());
     return [
-      'Следующая тренировка B — спина, корпус, техника маха, без обязательного halo:',
-      ...templates.next.map((x) => `• ${x[0]} — ${x[1]}×${x[2]}`),
+      `Следующая тренировка: ${templateLabels[rec.key] || rec.key}`,
+      rec.reason,
+      ...(templates[rec.key] || []).map((x) => `• ${x[0]} — ${x[1]}×${x[2]}`),
       'Темп: умеренно, без работы в отказ. Отдых 45–75 секунд.'
     ].join('\n');
   }
@@ -887,10 +1272,10 @@
 
   function exportCsv() {
     const data = loadWorkouts();
-    const rows = [['date','duration','weight','intensity','approximate','exercise','sets','reps','notes']];
+    const rows = [['date','template','duration','weight','intensity','approximate','exercise','sets','reps','notes']];
     data.forEach((w) => {
       (w.exercises || []).forEach((e) => {
-        rows.push([w.date, w.duration, w.weight, w.intensity, w.approximate ? 'yes' : 'no', e.name, e.sets, e.reps, w.notes || '']);
+        rows.push([w.date, w.template || '', w.duration, w.weight, w.intensity, w.approximate ? 'yes' : 'no', e.name, e.sets, e.reps, w.notes || '']);
       });
     });
     const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -900,6 +1285,7 @@
   function render() {
     const data = loadWorkouts();
     renderStats(data);
+    renderAnalytics(data);
     renderHistory(data);
     renderNextWorkout();
     renderPlan();
@@ -915,8 +1301,16 @@
   $('copyNext').addEventListener('click', () => copyText(makeNextText(), 'Тренировка скопирована'));
   $('copyPlan').addEventListener('click', () => copyText(makePlanText(), 'План скопирован'));
   $('seedWorkouts').addEventListener('click', () => addInitialWorkouts(true));
-  $('exportJson').addEventListener('click', () => download('kettlebell-workouts.json', 'application/json;charset=utf-8', JSON.stringify(loadWorkouts(), null, 2)));
-  $('copyBackup').addEventListener('click', () => copyText(JSON.stringify(loadWorkouts(), null, 2), 'JSON скопирован'));
+  $('exportJson').addEventListener('click', () => {
+    localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
+    download('kettlebell-workouts.json', 'application/json;charset=utf-8', JSON.stringify(loadWorkouts(), null, 2));
+    render();
+  });
+  $('copyBackup').addEventListener('click', () => {
+    localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
+    copyText(JSON.stringify(loadWorkouts(), null, 2), 'JSON скопирован');
+    render();
+  });
   $('copySaveGuide').addEventListener('click', () => copyText(makeSaveGuide(), 'Инструкция скопирована'));
   $('exportCsv').addEventListener('click', exportCsv);
   $('importBtn').addEventListener('click', () => $('importFile').click());
@@ -927,26 +1321,37 @@
       const text = await file.text();
       const parsed = JSON.parse(text);
       if (!Array.isArray(parsed)) throw new Error('JSON должен быть массивом тренировок');
-      saveWorkouts(parsed);
+      const normalized = normalizeWorkouts(parsed);
+      if (!normalized.length) throw new Error('В файле нет тренировок');
+      if (loadWorkouts().length && !confirm('Заменить текущую историю тренировок данными из JSON-бэкапа?')) return;
+      saveWorkouts(normalized);
+      localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
+      localStorage.removeItem(DRAFT_KEY);
+      clearForm();
       render();
-      showToast('Импортировано');
+      showToast(`Импортировано тренировок: ${normalized.length}`);
     } catch (e) {
       showToast('Не удалось импортировать JSON');
       console.error(e);
     }
     event.target.value = '';
   });
+  if ($('copyAnalytics')) $('copyAnalytics').addEventListener('click', () => copyText(makeAnalyticsText(loadWorkouts()), 'Аналитика скопирована'));
   $('copySummary').addEventListener('click', () => copyText(makeSummary(loadWorkouts()), 'Статистика скопирована'));
   $('resetAll').addEventListener('click', () => {
     if (confirm('Удалить все тренировки из этого браузера?')) {
       saveWorkouts([]);
+      localStorage.removeItem(DRAFT_KEY);
       render();
       showToast('История очищена');
     }
   });
 
+  document.querySelector('section.card').addEventListener('input', saveDraftSoon);
+  document.querySelector('section.card').addEventListener('change', saveDraftSoon);
+
   seedIfEmpty();
-  clearForm();
+  if (!restoreDraftIfUseful()) clearForm();
   render();
 })();
 </script>
