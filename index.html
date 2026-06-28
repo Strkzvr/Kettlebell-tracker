@@ -116,6 +116,8 @@
     .exercise-list { display:grid; gap:8px; margin-top:8px; }
     .exercise { display:grid; grid-template-columns:1.45fr .55fr .75fr .46fr; gap:8px; align-items:end; padding:10px; background:rgba(255,255,255,.035); border:1px solid var(--line); border-radius:17px; }
     .exercise button { padding:11px 10px; }
+    .custom-ex-name { margin-top:8px; display:none; }
+    .exercise.has-custom .custom-ex-name { display:block; }
     @media (max-width:720px){ .exercise{grid-template-columns:1fr 1fr;} .exercise .wide{grid-column:1/-1;} }
 
     .stats { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
@@ -293,6 +295,7 @@
           <button class="secondary" id="addExercise">+ упражнение</button>
         </div>
         <div id="exerciseList" class="exercise-list"></div>
+        <div class="backup-note" style="margin-top:10px">Если упражнения нет в списке, выбери «Другое» и впиши своё название. «Трастер с гирей / присед + жим вверх» теперь добавлен в список.</div>
         <div style="margin-top:10px">
           <label for="notes">Заметки</label>
           <textarea id="notes" placeholder="Например: без отказа, спина нормально, махи пошли легче..."></textarea>
@@ -402,7 +405,7 @@
   const STORAGE_KEY = 'kettlebell_tracker_v1';
   const DRAFT_KEY = 'kettlebell_tracker_draft_v1';
   const LAST_BACKUP_KEY = 'kettlebell_tracker_last_backup_v1';
-  const APP_VERSION = '2026-06-27-redesign-v2';
+  const APP_VERSION = '2026-06-28-thruster-custom-exercise';
   let isSaving = false;
   let draftTimer = null;
   const exercises = [
@@ -418,6 +421,7 @@
     'Мобильность плеч без гири',
     'Halo / круги вокруг головы (опционально)',
     'Подъём гири на грудь',
+    'Трастер с гирей / присед + жим вверх',
     'Французский жим на трицепс',
     'Чемоданная переноска',
     'Фермерская прогулка',
@@ -777,7 +781,24 @@
   }
 
   function optionHtml(selected) {
-    return exercises.map((name) => `<option value="${escapeHtml(name)}" ${name === selected ? 'selected' : ''}>${escapeHtml(name)}</option>`).join('');
+    const normalizedSelected = exercises.includes(selected) ? selected : 'Другое';
+    return exercises.map((name) => `<option value="${escapeHtml(name)}" ${name === normalizedSelected ? 'selected' : ''}>${escapeHtml(name)}</option>`).join('');
+  }
+
+  function syncCustomExerciseInput(row) {
+    const select = row.querySelector('.ex-name');
+    const custom = row.querySelector('.ex-custom');
+    if (!select || !custom) return;
+    const isCustom = select.value === 'Другое';
+    row.classList.toggle('has-custom', isCustom);
+    custom.disabled = !isCustom;
+    if (isCustom && !custom.value.trim()) custom.placeholder = 'Например: Трастер с гирей';
+  }
+
+  function getExerciseNameFromRow(row) {
+    const selectValue = row.querySelector('.ex-name').value;
+    const customValue = (row.querySelector('.ex-custom')?.value || '').trim();
+    return selectValue === 'Другое' ? (customValue || 'Другое') : selectValue;
   }
 
   function escapeHtml(str) {
@@ -875,12 +896,15 @@
   }
 
   function addExerciseRow(name = 'Гоблет-присед', sets = '3', reps = '10-15') {
+    const isKnown = exercises.includes(name);
+    const customName = isKnown ? '' : String(name || '').trim();
     const wrap = document.createElement('div');
     wrap.className = 'exercise';
     wrap.innerHTML = `
       <div class="wide">
         <label>Упражнение</label>
         <select class="ex-name">${optionHtml(name)}</select>
+        <input class="ex-custom custom-ex-name" type="text" value="${escapeHtml(customName)}" placeholder="Название упражнения">
       </div>
       <div>
         <label>Подходы</label>
@@ -895,7 +919,9 @@
         <button class="danger remove" type="button">×</button>
       </div>`;
     wrap.querySelector('.remove').addEventListener('click', () => wrap.remove());
+    wrap.querySelector('.ex-name').addEventListener('change', () => syncCustomExerciseInput(wrap));
     $('exerciseList').appendChild(wrap);
+    syncCustomExerciseInput(wrap);
   }
 
   function applyTemplate() {
@@ -912,7 +938,7 @@
 
   function collectForm() {
     const items = Array.from(document.querySelectorAll('.exercise')).map((row) => ({
-      name: row.querySelector('.ex-name').value,
+      name: getExerciseNameFromRow(row),
       sets: Number(row.querySelector('.ex-sets').value || 0),
       reps: row.querySelector('.ex-reps').value.trim()
     })).filter((x) => x.name && x.sets > 0);
