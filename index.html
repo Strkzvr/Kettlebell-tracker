@@ -364,7 +364,7 @@
       <div class="next-head">
         <div>
           <h2>Аналитика прогресса</h2>
-          <div class="muted">Регулярность по неделям, минуты, примерный объём, частые упражнения и баланс A/B/C.</div>
+          <div class="muted">Регулярность, объём, баланс A/B/C, движение по группам и подсказки по перегрузу.</div>
         </div>
         <div class="actions" style="margin-top:0">
           <button class="secondary" id="copyAnalytics">Скопировать аналитику</button>
@@ -427,7 +427,7 @@
   const STORAGE_KEY = 'kettlebell_tracker_v1';
   const DRAFT_KEY = 'kettlebell_tracker_draft_v1';
   const LAST_BACKUP_KEY = 'kettlebell_tracker_last_backup_v1';
-  const APP_VERSION = '2026-06-28-type-and-reorder-v3';
+  const APP_VERSION = '2026-06-29-smart-stats-v1';
   let isSaving = false;
   let editingWorkoutId = null;
   let draftTimer = null;
@@ -1231,7 +1231,8 @@
     const lastBackupRaw = localStorage.getItem(LAST_BACKUP_KEY);
     const lastBackupDate = lastBackupRaw ? new Date(lastBackupRaw) : null;
     const needsBackup = data.length > 0 && (!lastBackupDate || Number.isNaN(lastBackupDate.getTime()) || (now - lastBackupDate) > 7 * 24 * 60 * 60 * 1000);
-    return { total: data.length, recent7, recent30, top, sets, volume, minutes, last, needsBackup, lastBackupDate };
+    const smart = calcSmartStats(data);
+    return { total: data.length, recent7, recent30, top, sets, volume, minutes, last, needsBackup, lastBackupDate, daysSinceLast: smart.daysSinceLast };
   }
 
   function formatDate(iso) {
@@ -1253,6 +1254,7 @@
       <div class="stat"><div class="num">${Math.round(s.volume).toLocaleString('ru-RU')}</div><div class="txt">примерный объём, кг×повт.</div></div>
       <div class="stat"><div class="num" style="font-size:18px;line-height:1.2">${escapeHtml(topName)}</div><div class="txt">самое частое упражнение</div></div>
       <div class="stat"><div class="num" style="font-size:18px;line-height:1.2">${escapeHtml(lastText)}</div><div class="txt">последняя тренировка</div></div>
+      <div class="stat"><div class="num">${s.daysSinceLast === null ? '—' : s.daysSinceLast}</div><div class="txt">дней с последней тренировки</div></div>
       <div class="stat"><div class="num" style="font-size:18px;line-height:1.2">${s.needsBackup ? 'нужен' : 'ок'}</div><div class="txt">статус бэкапа JSON</div></div>`;
   }
 
@@ -1286,6 +1288,103 @@
     const repsText = String(exercise.reps || '').toLowerCase();
     if (repsText.includes('сек') || repsText.includes('мин')) return 0;
     return Number(exercise.sets || 0) * parseReps(exercise.reps) * Number(workout.weight || 0);
+  }
+
+
+  function getExerciseReps(exercise) {
+    if (!exercise || nonWorkingExercises.includes(exercise.name)) return 0;
+    const repsText = String(exercise.reps || '').toLowerCase();
+    if (repsText.includes('сек') || repsText.includes('мин')) return 0;
+    return Number(exercise.sets || 0) * parseReps(exercise.reps);
+  }
+
+  function movementTags(name) {
+    const n = String(name || '').toLowerCase();
+    const tags = [];
+    if (n.includes('присед') || n.includes('выпад') || n.includes('трастер')) tags.push('squat');
+    if (n.includes('мах')) tags.push('swing');
+    if (n.includes('жим') || n.includes('трастер') || n.includes('halo') || n.includes('круги вокруг головы')) tags.push('press');
+    if (n.includes('тяга') || n.includes('подъём гири на грудь') || n.includes('подъем гири на грудь')) tags.push('pull');
+    if (n.includes('перехват') || n.includes('планка') || n.includes('переноска') || n.includes('прогулка')) tags.push('core');
+    return tags;
+  }
+
+  function calcSmartStats(data) {
+    const workouts = normalizeWorkouts(data || []);
+    const sorted = [...workouts].sort((a, b) => new Date(b.date) - new Date(a.date) || String(b.id).localeCompare(String(a.id)));
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const last = sorted[0] || null;
+    let daysSinceLast = null;
+    if (last && toDate(last.date)) {
+      const lastDate = toDate(last.date);
+      daysSinceLast = Math.max(0, Math.floor((today - lastDate) / (24 * 60 * 60 * 1000)));
+    }
+
+    const movement = {
+      squat: { title: 'Присед / ноги', reps: 0 },
+      swing: { title: 'Махи', reps: 0 },
+      press: { title: 'Жим / плечи', reps: 0 },
+      pull: { title: 'Тяги / спина', reps: 0 },
+      core: { title: 'Корпус / хват', reps: 0 }
+    };
+    workouts.forEach((w) => {
+      (w.exercises || []).forEach((e) => {
+        const reps = getExerciseReps(e);
+        if (!reps) return;
+        movementTags(e.name).forEach((tag) => { movement[tag].reps += reps; });
+      });
+    });
+    const maxMovement = Math.max(1, ...Object.values(movement).map((x) => x.reps));
+
+    const last3 = sorted.slice(0, 3);
+    const loadSeq = last3.map((w) => w.intensity || '—');
+    const heavyishCount = last3.filter((w) => w.intensity === 'Тяжёлая').length;
+    const moderateCount = last3.filter((w) => w.intensity === 'Умеренная').length;
+    const last3ShoulderReps = last3.reduce((sum, w) => sum + (w.exercises || []).reduce((s, e) => movementTags(e.name).includes('press') ? s + getExerciseReps(e) : s, 0), 0);
+    const last3BackReps = last3.reduce((sum, w) => sum + (w.exercises || []).reduce((s, e) => {
+      const tags = movementTags(e.name);
+      return (tags.includes('pull') || tags.includes('swing')) ? s + getExerciseReps(e) : s;
+    }, 0), 0);
+
+    const templateCounts = { strength: 0, hinge: 0, light: 0, base: 0, express: 0, late: 0 };
+    workouts.forEach((w) => { const t = classifyWorkout(w); templateCounts[t] = (templateCounts[t] || 0) + 1; });
+    const a = templateCounts.strength || 0;
+    const b = templateCounts.hinge || 0;
+    const c = (templateCounts.light || 0) + (templateCounts.late || 0);
+    let balanceAdvice = 'Баланс нормальный: чередуй A и B, а C используй в уставшие дни.';
+    if (workouts.length >= 3 && c === 0) balanceAdvice = 'C почти нет. Добавляй лёгкую тренировку после тяжёлой работы или плотной B.';
+    else if (a > b + 2) balanceAdvice = 'A стало больше B. Следующую лучше сделать B или C, чтобы разгрузить присед и жим.';
+    else if (b > a + 2) balanceAdvice = 'B стало больше A. Если самочувствие нормальное, следующая может быть A.';
+
+    let regularityAdvice = 'Пока нет сохранённых тренировок.';
+    if (daysSinceLast === 0) regularityAdvice = 'Тренировка была сегодня — просто восстановись.';
+    else if (daysSinceLast === 1) regularityAdvice = 'Прошёл 1 день — ритм хороший.';
+    else if (daysSinceLast === 2) regularityAdvice = 'Прошло 2 дня — можно планировать следующую без спешки.';
+    else if (daysSinceLast !== null) regularityAdvice = `Прошло ${daysSinceLast} дн. Если нет сильной усталости, сделай C или короткую тренировку.`;
+
+    const warnings = [];
+    if (heavyishCount >= 2) warnings.push('Было несколько тяжёлых тренировок в последних трёх — следующую лучше сделать C.');
+    if (last3ShoulderReps >= 180) warnings.push('Много жимов/трастеров за последние 3 тренировки — плечи лучше не форсировать.');
+    if (last3BackReps >= 260) warnings.push('Большой объём махов/тяг за последние 3 тренировки — следи за поясницей и техникой.');
+    if (!warnings.length && moderateCount >= 3) warnings.push('Последние тренировки умеренные. Можно держать ритм, но не повышай объём резко.');
+    if (!warnings.length) warnings.push('Явных признаков перегруза по записям нет.');
+
+    return {
+      last,
+      daysSinceLast,
+      regularityAdvice,
+      movement,
+      maxMovement,
+      last3,
+      loadSeq,
+      templateCounts,
+      abc: { a, b, c },
+      balanceAdvice,
+      warnings,
+      last3ShoulderReps,
+      last3BackReps
+    };
   }
 
   function calcAnalytics(data) {
@@ -1339,7 +1438,8 @@
     const target = 8;
     const targetPct = Math.min(100, Math.round((last30 / target) * 100));
     const monthAdvice = last30 >= target ? 'Минимум месяца выполнен. Дальше держи ритм без перегруза.' : `До минимальной цели осталось ${Math.max(0, target - last30)} тренировк${target - last30 === 1 ? 'а' : 'и'}.`;
-    return { weeks, topExercises, max, last30, target, targetPct, monthAdvice, templateCounts };
+    const smart = calcSmartStats(workouts);
+    return { weeks, topExercises, max, last30, target, targetPct, monthAdvice, templateCounts, smart };
   }
 
   function barHtml(value, max, suffix = '') {
@@ -1357,6 +1457,12 @@
       lines.push('\nСамые частые упражнения:');
       a.topExercises.forEach(([name, count]) => lines.push(`• ${name}: ${count} раз`));
     }
+    lines.push('\nУмные подсказки:');
+    lines.push(`• Дней с последней тренировки: ${a.smart.daysSinceLast === null ? '—' : a.smart.daysSinceLast}. ${a.smart.regularityAdvice}`);
+    lines.push(`• Баланс A/B/C: A ${a.smart.abc.a}, B ${a.smart.abc.b}, C ${a.smart.abc.c}. ${a.smart.balanceAdvice}`);
+    lines.push(`• Последние нагрузки: ${a.smart.loadSeq.length ? a.smart.loadSeq.join(' → ') : 'нет данных'}`);
+    lines.push('• Движения: ' + Object.values(a.smart.movement).map((m) => `${m.title}: ${Math.round(m.reps)}`).join('; '));
+    lines.push(`• Перегруз: ${a.smart.warnings.join(' ')}`);
     return lines.join('\n');
   }
 
@@ -1394,6 +1500,18 @@
       <div class="analytics-box">
         <h3>Самые частые упражнения</h3>
         <div class="bar-list">${exercisesHtml}</div>
+      </div>
+      <div class="analytics-box" style="grid-column:1 / -1">
+        <h3>Полезная статистика и подсказки</h3>
+        <div class="insight-grid">
+          <div class="insight"><b>Последняя тренировка: ${a.smart.daysSinceLast === null ? '—' : a.smart.daysSinceLast + ' дн. назад'}</b><span>${escapeHtml(a.smart.regularityAdvice)}</span></div>
+          <div class="insight"><b>Нагрузка последних 3: ${escapeHtml(a.smart.loadSeq.length ? a.smart.loadSeq.join(' → ') : 'нет данных')}</b><span>${escapeHtml(a.smart.warnings[0] || 'Явных признаков перегруза нет.')}</span></div>
+          <div class="insight"><b>Баланс A/B/C: ${a.smart.abc.a} / ${a.smart.abc.b} / ${a.smart.abc.c}</b><span>${escapeHtml(a.smart.balanceAdvice)}</span></div>
+        </div>
+        <div class="bar-list" style="margin-top:12px">
+          ${Object.values(a.smart.movement).map((m) => `<div class="bar-row"><div class="bar-label">${escapeHtml(m.title)}</div><div>${barHtml(m.reps, a.smart.maxMovement, ' повт.')}</div></div>`).join('')}
+        </div>
+        <div class="insight" style="margin-top:12px"><b>Проверка перегруза плеч/спины</b><span>${escapeHtml(a.smart.warnings.join(' '))}</span></div>
       </div>
       <div class="analytics-box" style="grid-column:1 / -1">
         <h3>Баланс программы</h3>
