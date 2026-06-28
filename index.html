@@ -118,8 +118,11 @@
     .history-actions button { padding:10px 12px; }
 
     .exercise-list { display:grid; gap:8px; margin-top:8px; }
-    .exercise { display:grid; grid-template-columns:1.45fr .55fr .75fr .46fr; gap:8px; align-items:end; padding:10px; background:rgba(255,255,255,.035); border:1px solid var(--line); border-radius:17px; }
+    .exercise { display:grid; grid-template-columns:1.45fr .55fr .75fr auto; gap:8px; align-items:end; padding:10px; background:rgba(255,255,255,.035); border:1px solid var(--line); border-radius:17px; }
     .exercise button { padding:11px 10px; }
+    .exercise-actions { display:grid; grid-template-columns:repeat(3, 40px); gap:6px; align-items:end; }
+    .exercise-actions button { min-width:40px; padding:11px 0; }
+    .exercise-actions .move:disabled { opacity:.35; cursor:not-allowed; }
     .custom-ex-name { margin-top:8px; display:none; }
     .exercise.has-custom .custom-ex-name { display:block; }
     @media (max-width:720px){ .exercise{grid-template-columns:1fr 1fr;} .exercise .wide{grid-column:1/-1;} }
@@ -271,7 +274,7 @@
             <input id="weight" type="number" inputmode="decimal" min="1" max="80" value="16">
           </div>
         </div>
-        <div class="row" style="margin-top:10px">
+        <div class="row3" style="margin-top:10px">
           <div>
             <label for="intensity">Самочувствие / нагрузка</label>
             <select id="intensity">
@@ -281,7 +284,7 @@
             </select>
           </div>
           <div>
-            <label for="template">Шаблон</label>
+            <label for="template">Шаблон для заполнения</label>
             <select id="template">
               <option value="next">Следующая тренировка</option>
               <option value="base">База 3 круга</option>
@@ -293,6 +296,19 @@
               <option value="empty">Пустая тренировка</option>
             </select>
           </div>
+          <div>
+            <label for="recordTemplate">Тип записи в истории</label>
+            <select id="recordTemplate">
+              <option value="auto">Авто по шаблону</option>
+              <option value="strength">A · сила и база</option>
+              <option value="hinge">B · махи, спина, корпус</option>
+              <option value="light">C · лёгкая техника</option>
+              <option value="base">База 3 круга</option>
+              <option value="express">Экспресс 20 минут</option>
+              <option value="late">Поздняя лёгкая</option>
+              <option value="empty">Без типа / вручную</option>
+            </select>
+          </div>
         </div>
         <div id="templateHint" class="template-hint"></div>
         <div class="actions">
@@ -300,7 +316,7 @@
           <button class="secondary" id="addExercise">+ упражнение</button>
         </div>
         <div id="exerciseList" class="exercise-list"></div>
-        <div class="backup-note" style="margin-top:10px">Если упражнения нет в списке, выбери «Другое» и впиши своё название. «Трастер с гирей / присед + жим вверх» теперь добавлен в список.</div>
+        <div class="backup-note" style="margin-top:10px">Если упражнения нет в списке, выбери «Другое» и впиши своё название. Порядок упражнений можно менять кнопками ↑/↓. Тип A/B/C для истории меняется в поле «Тип записи в истории».</div>
         <div style="margin-top:10px">
           <label for="notes">Заметки</label>
           <textarea id="notes" placeholder="Например: без отказа, спина нормально, махи пошли легче..."></textarea>
@@ -411,7 +427,7 @@
   const STORAGE_KEY = 'kettlebell_tracker_v1';
   const DRAFT_KEY = 'kettlebell_tracker_draft_v1';
   const LAST_BACKUP_KEY = 'kettlebell_tracker_last_backup_v1';
-  const APP_VERSION = '2026-06-28-edit-workouts-v2';
+  const APP_VERSION = '2026-06-28-type-and-reorder-v3';
   let isSaving = false;
   let editingWorkoutId = null;
   let draftTimer = null;
@@ -922,19 +938,50 @@
         <input class="ex-reps" type="text" value="${escapeHtml(reps)}" placeholder="10-15">
       </div>
       <div>
-        <label>&nbsp;</label>
-        <button class="danger remove" type="button">×</button>
+        <label>Порядок</label>
+        <div class="exercise-actions">
+          <button class="secondary move move-up" type="button" title="Выше">↑</button>
+          <button class="secondary move move-down" type="button" title="Ниже">↓</button>
+          <button class="danger remove" type="button" title="Удалить">×</button>
+        </div>
       </div>`;
-    wrap.querySelector('.remove').addEventListener('click', () => { wrap.remove(); saveDraftSoon(); });
-    wrap.querySelector('.ex-name').addEventListener('change', () => syncCustomExerciseInput(wrap));
+    wrap.querySelector('.remove').addEventListener('click', () => { wrap.remove(); updateExerciseOrderButtons(); saveDraftSoon(); });
+    wrap.querySelector('.move-up').addEventListener('click', () => moveExerciseRow(wrap, -1));
+    wrap.querySelector('.move-down').addEventListener('click', () => moveExerciseRow(wrap, 1));
+    wrap.querySelector('.ex-name').addEventListener('change', () => { syncCustomExerciseInput(wrap); saveDraftSoon(); });
+    wrap.querySelectorAll('input').forEach((input) => input.addEventListener('input', saveDraftSoon));
     $('exerciseList').appendChild(wrap);
     syncCustomExerciseInput(wrap);
+    updateExerciseOrderButtons();
+  }
+
+  function moveExerciseRow(row, direction) {
+    const list = $('exerciseList');
+    if (!list || !row) return;
+    if (direction < 0 && row.previousElementSibling) {
+      list.insertBefore(row, row.previousElementSibling);
+    } else if (direction > 0 && row.nextElementSibling) {
+      list.insertBefore(row.nextElementSibling, row);
+    }
+    updateExerciseOrderButtons();
+    saveDraftSoon();
+  }
+
+  function updateExerciseOrderButtons() {
+    const rows = Array.from(document.querySelectorAll('#exerciseList .exercise'));
+    rows.forEach((row, index) => {
+      const up = row.querySelector('.move-up');
+      const down = row.querySelector('.move-down');
+      if (up) up.disabled = index === 0;
+      if (down) down.disabled = index === rows.length - 1;
+    });
   }
 
   function applyTemplate() {
     $('exerciseList').innerHTML = '';
     const selectedKey = $('template').value;
     const key = resolveTemplateKey(selectedKey);
+    syncRecordTemplateWithTemplate();
     (templates[key] || []).forEach((item) => addExerciseRow(item[0], item[1], item[2]));
     const meta = getTemplateMeta(selectedKey);
     $('duration').value = meta.duration;
@@ -957,7 +1004,7 @@
       if (cancelButton) cancelButton.style.display = '';
       if (status) {
         status.style.display = 'block';
-        status.innerHTML = `<b>Редактируешь сохранённую тренировку.</b><br>${workout ? escapeHtml(formatDate(workout.date)) : 'Запись загружена в форму'} · после сохранения история обновится без создания дубля.`;
+        status.innerHTML = `<b>Редактируешь сохранённую тренировку.</b><br>${workout ? escapeHtml(formatDate(workout.date)) : 'Запись загружена в форму'} · после сохранения история обновится без создания дубля. Тип A/B/C меняется в поле «Тип записи в истории», порядок упражнений — кнопками ↑/↓.`;
       }
     } else {
       if (title) title.textContent = 'Новая тренировка';
@@ -976,6 +1023,21 @@
     select.value = allowed.includes(value) ? value : 'empty';
   }
 
+  function setRecordTemplateValue(value) {
+    const select = $('recordTemplate');
+    if (!select) return;
+    const allowed = Array.from(select.options).map((o) => o.value);
+    select.value = allowed.includes(value) ? value : 'auto';
+  }
+
+  function syncRecordTemplateWithTemplate() {
+    const recordSelect = $('recordTemplate');
+    if (!recordSelect || recordSelect.value !== 'auto') return;
+    const selectedKey = $('template').value;
+    const actualKey = resolveTemplateKey(selectedKey);
+    recordSelect.dataset.autoValue = actualKey;
+  }
+
   function fillFormFromWorkout(workout, { edit = false } = {}) {
     if (!workout) return;
     const normalized = normalizeWorkout(workout);
@@ -985,6 +1047,7 @@
     $('weight').value = normalized.weight || 16;
     $('intensity').value = normalized.intensity || 'Умеренная';
     setTemplateValue(normalized.selectedTemplate || normalized.template || 'empty');
+    setRecordTemplateValue(normalized.template || 'auto');
     $('notes').value = normalized.notes || '';
     $('exerciseList').innerHTML = '';
     normalized.exercises.forEach((e) => addExerciseRow(e.name, e.sets, e.reps));
@@ -1013,9 +1076,11 @@
 
     const selectedTemplate = $('template').value;
     const actualTemplate = resolveTemplateKey(selectedTemplate);
+    const recordChoice = $('recordTemplate') ? $('recordTemplate').value : 'auto';
+    const recordTemplate = recordChoice && recordChoice !== 'auto' ? recordChoice : actualTemplate;
     return {
       id: editingWorkoutId || newId(),
-      template: actualTemplate,
+      template: recordTemplate,
       selectedTemplate,
       date: $('date').value || todayISO(),
       duration: Number($('duration').value || 0),
@@ -1055,7 +1120,8 @@
       $('duration').value = workout.duration || 25;
       $('weight').value = workout.weight || 16;
       $('intensity').value = workout.intensity || 'Умеренная';
-      $('template').value = workout.selectedTemplate || workout.template || 'next';
+      setTemplateValue(workout.selectedTemplate || workout.template || 'next');
+      setRecordTemplateValue(workout.template || 'auto');
       $('notes').value = workout.notes || '';
       $('exerciseList').innerHTML = '';
       workout.exercises.forEach((e) => addExerciseRow(e.name, e.sets, e.reps));
@@ -1077,6 +1143,7 @@
     $('date').value = todayISO();
     $('weight').value = 16;
     $('template').value = 'next';
+    setRecordTemplateValue('auto');
     applyTemplate();
   }
 
@@ -1566,7 +1633,8 @@
   }
 
   $('date').value = todayISO();
-  $('template').addEventListener('change', renderTemplateHint);
+  $('template').addEventListener('change', () => { syncRecordTemplateWithTemplate(); renderTemplateHint(); saveDraftSoon(); });
+  $('recordTemplate').addEventListener('change', saveDraftSoon);
   $('applyTemplate').addEventListener('click', applyTemplate);
   $('addExercise').addEventListener('click', () => addExerciseRow());
   $('saveWorkout').addEventListener('click', saveCurrentWorkout);
