@@ -112,6 +112,10 @@
     button.danger { background:transparent; color:var(--danger); border:1px solid rgba(255,118,118,.35); }
     button:active { transform: translateY(1px); }
     .actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .edit-status { display:none; margin:0 0 12px; padding:12px; border-radius:17px; border:1px solid rgba(242,189,94,.28); background:rgba(242,189,94,.10); color:var(--text); font-size:13px; line-height:1.45; }
+    .edit-status b { color:var(--gold); }
+    .history-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+    .history-actions button { padding:10px 12px; }
 
     .exercise-list { display:grid; gap:8px; margin-top:8px; }
     .exercise { display:grid; grid-template-columns:1.45fr .55fr .75fr .46fr; gap:8px; align-items:end; padding:10px; background:rgba(255,255,255,.035); border:1px solid var(--line); border-radius:17px; }
@@ -159,7 +163,7 @@
     .template-hint li { margin:4px 0; }
     .plan-buttons { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
     .next-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
-    @media (max-width:600px){ .next-head, .workout-top{display:block;} .workout-top button{margin-top:10px;} }
+    @media (max-width:600px){ .next-head, .workout-top{display:block;} .workout-top button{margin-top:10px;} .history-actions{justify-content:flex-start; margin-top:10px;} }
     .table { width:100%; border-collapse:collapse; overflow:hidden; border-radius:14px; font-size:14px; }
     .table th, .table td { text-align:left; padding:10px; border-bottom:1px solid var(--line); vertical-align:top; }
     .table th { color:var(--muted); font-size:12px; font-weight:700; }
@@ -251,7 +255,8 @@
 
     <section class="screen-grid section">
       <section class="card" id="formCard">
-        <h2>Новая тренировка</h2>
+        <h2 id="formTitle">Новая тренировка</h2>
+        <div id="editStatus" class="edit-status"></div>
         <div class="row3">
           <div>
             <label for="date">Дата</label>
@@ -302,6 +307,7 @@
         </div>
         <div class="actions">
           <button id="saveWorkout">Сохранить тренировку</button>
+          <button class="secondary" id="cancelEdit" type="button" style="display:none">Отменить редактирование</button>
           <button class="secondary" id="clearForm">Очистить</button>
         </div>
       </section>
@@ -405,8 +411,9 @@
   const STORAGE_KEY = 'kettlebell_tracker_v1';
   const DRAFT_KEY = 'kettlebell_tracker_draft_v1';
   const LAST_BACKUP_KEY = 'kettlebell_tracker_last_backup_v1';
-  const APP_VERSION = '2026-06-28-thruster-custom-exercise';
+  const APP_VERSION = '2026-06-28-edit-workouts-v2';
   let isSaving = false;
+  let editingWorkoutId = null;
   let draftTimer = null;
   const exercises = [
     'Разминка без гири',
@@ -918,7 +925,7 @@
         <label>&nbsp;</label>
         <button class="danger remove" type="button">×</button>
       </div>`;
-    wrap.querySelector('.remove').addEventListener('click', () => wrap.remove());
+    wrap.querySelector('.remove').addEventListener('click', () => { wrap.remove(); saveDraftSoon(); });
     wrap.querySelector('.ex-name').addEventListener('change', () => syncCustomExerciseInput(wrap));
     $('exerciseList').appendChild(wrap);
     syncCustomExerciseInput(wrap);
@@ -936,6 +943,67 @@
     renderTemplateHint();
   }
 
+
+  function setEditingState(id) {
+    editingWorkoutId = id || null;
+    const title = $('formTitle');
+    const status = $('editStatus');
+    const saveButton = $('saveWorkout');
+    const cancelButton = $('cancelEdit');
+    if (editingWorkoutId) {
+      const workout = loadWorkouts().find((w) => w.id === editingWorkoutId);
+      if (title) title.textContent = 'Редактирование тренировки';
+      if (saveButton) saveButton.textContent = 'Сохранить изменения';
+      if (cancelButton) cancelButton.style.display = '';
+      if (status) {
+        status.style.display = 'block';
+        status.innerHTML = `<b>Редактируешь сохранённую тренировку.</b><br>${workout ? escapeHtml(formatDate(workout.date)) : 'Запись загружена в форму'} · после сохранения история обновится без создания дубля.`;
+      }
+    } else {
+      if (title) title.textContent = 'Новая тренировка';
+      if (saveButton) saveButton.textContent = 'Сохранить тренировку';
+      if (cancelButton) cancelButton.style.display = 'none';
+      if (status) {
+        status.style.display = 'none';
+        status.textContent = '';
+      }
+    }
+  }
+
+  function setTemplateValue(value) {
+    const select = $('template');
+    const allowed = Array.from(select.options).map((o) => o.value);
+    select.value = allowed.includes(value) ? value : 'empty';
+  }
+
+  function fillFormFromWorkout(workout, { edit = false } = {}) {
+    if (!workout) return;
+    const normalized = normalizeWorkout(workout);
+    setEditingState(edit ? normalized.id : null);
+    $('date').value = normalized.date || todayISO();
+    $('duration').value = normalized.duration || 25;
+    $('weight').value = normalized.weight || 16;
+    $('intensity').value = normalized.intensity || 'Умеренная';
+    setTemplateValue(normalized.selectedTemplate || normalized.template || 'empty');
+    $('notes').value = normalized.notes || '';
+    $('exerciseList').innerHTML = '';
+    normalized.exercises.forEach((e) => addExerciseRow(e.name, e.sets, e.reps));
+    renderTemplateHint();
+  }
+
+  function loadWorkoutForEdit(id) {
+    const workout = loadWorkouts().find((w) => w.id === id);
+    if (!workout) {
+      showToast('Не нашёл эту тренировку');
+      return;
+    }
+    fillFormFromWorkout(workout, { edit: true });
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: new Date().toISOString(), editingWorkoutId: workout.id, workout }));
+    const form = $('formCard');
+    if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    showToast('Тренировка загружена для редактирования');
+  }
+
   function collectForm() {
     const items = Array.from(document.querySelectorAll('.exercise')).map((row) => ({
       name: getExerciseNameFromRow(row),
@@ -946,7 +1014,7 @@
     const selectedTemplate = $('template').value;
     const actualTemplate = resolveTemplateKey(selectedTemplate);
     return {
-      id: newId(),
+      id: editingWorkoutId || newId(),
       template: actualTemplate,
       selectedTemplate,
       date: $('date').value || todayISO(),
@@ -968,7 +1036,7 @@
       try {
         const workout = collectForm();
         if (workout.exercises.length || workout.notes) {
-          localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: new Date().toISOString(), workout }));
+          localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: new Date().toISOString(), editingWorkoutId, workout }));
         }
       } catch (e) {
         console.warn(e);
@@ -991,6 +1059,11 @@
       $('notes').value = workout.notes || '';
       $('exerciseList').innerHTML = '';
       workout.exercises.forEach((e) => addExerciseRow(e.name, e.sets, e.reps));
+      if (parsed.editingWorkoutId && loadWorkouts().some((w) => w.id === parsed.editingWorkoutId)) {
+        setEditingState(parsed.editingWorkoutId);
+      } else {
+        setEditingState(null);
+      }
       renderTemplateHint();
       return true;
     } catch (e) {
@@ -1000,15 +1073,16 @@
   }
 
   function clearForm() {
+    setEditingState(null);
     $('date').value = todayISO();
     $('weight').value = 16;
     $('template').value = 'next';
     applyTemplate();
   }
 
-  function isLikelyDuplicate(workout, data) {
+  function isLikelyDuplicate(workout, data, ignoreId = null) {
     const incoming = workoutSignature(workout);
-    return data.some((w) => workoutSignature(w) === incoming);
+    return data.some((w) => w.id !== ignoreId && workoutSignature(w) === incoming);
   }
 
   function saveCurrentWorkout() {
@@ -1021,6 +1095,21 @@
         return;
       }
       const data = loadWorkouts();
+      if (editingWorkoutId) {
+        workout.id = editingWorkoutId;
+        if (isLikelyDuplicate(workout, data, editingWorkoutId) && !confirm('Похоже, такая тренировка на эту дату уже есть. Всё равно сохранить изменения?')) {
+          return;
+        }
+        const index = data.findIndex((w) => w.id === editingWorkoutId);
+        if (index >= 0) data[index] = workout;
+        else data.push(workout);
+        saveWorkouts(data);
+        localStorage.removeItem(DRAFT_KEY);
+        clearForm();
+        render();
+        showToast('Тренировка обновлена');
+        return;
+      }
       if (isLikelyDuplicate(workout, data) && !confirm('Похоже, такая тренировка на эту дату уже есть. Всё равно сохранить дубль?')) {
         return;
       }
@@ -1264,18 +1353,26 @@
             <div class="workout-date">${escapeHtml(formatDate(w.date))}</div>
             <div class="workout-meta">${escapeHtml(w.duration || 0)} мин · ${escapeHtml(w.weight || 16)} кг · ${escapeHtml(w.intensity || '—')}${w.template ? ' · ' + escapeHtml(templateLabels[w.template] || w.template) : ''}${w.approximate ? ' · примерно' : ''}</div>
           </div>
-          <button class="danger" type="button" data-delete="${escapeHtml(w.id)}">Удалить</button>
+          <div class="history-actions">
+            <button class="secondary" type="button" data-edit="${escapeHtml(w.id)}">Редактировать</button>
+            <button class="danger" type="button" data-delete="${escapeHtml(w.id)}">Удалить</button>
+          </div>
         </div>
         <div class="chips">${chips}</div>
         ${w.approximate ? '<span class="pill">восстановлено по переписке</span>' : ''}
         ${w.notes ? `<div class="tiny" style="margin-top:10px">${escapeHtml(w.notes)}</div>` : ''}
       </div>`;
     }).join('');
+    box.querySelectorAll('[data-edit]').forEach((btn) => {
+      btn.addEventListener('click', () => loadWorkoutForEdit(btn.getAttribute('data-edit')));
+    });
     box.querySelectorAll('[data-delete]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-delete');
+        if (!confirm('Удалить эту тренировку из истории?')) return;
         const next = loadWorkouts().filter((w) => w.id !== id);
         saveWorkouts(next);
+        if (editingWorkoutId === id) setEditingState(null);
         render();
         showToast('Запись удалена');
       });
@@ -1474,6 +1571,7 @@
   $('addExercise').addEventListener('click', () => addExerciseRow());
   $('saveWorkout').addEventListener('click', saveCurrentWorkout);
   $('clearForm').addEventListener('click', clearForm);
+  $('cancelEdit').addEventListener('click', () => { localStorage.removeItem(DRAFT_KEY); clearForm(); showToast('Редактирование отменено'); });
   $('loadNext').addEventListener('click', () => { $('template').value = 'next'; applyTemplate(); window.scrollTo({ top: 0, behavior: 'smooth' }); showToast('Следующая тренировка загружена'); });
   const jumpTo = (id) => { const el = $(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
   ['jumpFormTop','quickForm'].forEach((id) => { if ($(id)) $(id).addEventListener('click', () => jumpTo('formCard')); });
