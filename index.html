@@ -429,7 +429,7 @@
   const STORAGE_KEY = 'kettlebell_tracker_v1';
   const DRAFT_KEY = 'kettlebell_tracker_draft_v1';
   const LAST_BACKUP_KEY = 'kettlebell_tracker_last_backup_v1';
-  const APP_VERSION = '2026-06-29-minotaur-v1';
+  const APP_VERSION = '2026-07-01-reps-analytics-v1';
   let isSaving = false;
   let editingWorkoutId = null;
   let draftTimer = null;
@@ -1431,11 +1431,15 @@
     }
     const byKey = Object.fromEntries(weeks.map((w) => [w.key, w]));
     const exerciseCounts = {};
+    const exerciseRepsAll = {};
+    const exerciseReps30 = {};
     const templateCounts = {};
+    const thirtyMs = 30 * 24 * 60 * 60 * 1000;
     workouts.forEach((w) => {
       const date = toDate(w.date);
       if (!date) return;
       const wk = weekStart(date).toISOString().slice(0, 10);
+      const inLast30 = (now - date) <= thirtyMs;
       if (byKey[wk]) {
         byKey[wk].workouts += 1;
         byKey[wk].minutes += Number(w.duration || 0);
@@ -1445,25 +1449,34 @@
       (w.exercises || []).forEach((e) => {
         if (!e || nonWorkingExercises.includes(e.name)) return;
         exerciseCounts[e.name] = (exerciseCounts[e.name] || 0) + 1;
+        const reps = getExerciseReps(e);
+        if (reps) {
+          exerciseRepsAll[e.name] = (exerciseRepsAll[e.name] || 0) + reps;
+          if (inLast30) exerciseReps30[e.name] = (exerciseReps30[e.name] || 0) + reps;
+        }
         if (byKey[wk]) byKey[wk].volume += getExerciseLoad(w, e);
       });
     });
     const topExercises = Object.entries(exerciseCounts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ru')).slice(0, 7);
+    const topExerciseRepsAll = Object.entries(exerciseRepsAll).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ru')).slice(0, 7);
+    const topExerciseReps30 = Object.entries(exerciseReps30).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ru')).slice(0, 7);
     const max = {
       workouts: Math.max(1, ...weeks.map((w) => w.workouts)),
       minutes: Math.max(1, ...weeks.map((w) => w.minutes)),
       volume: Math.max(1, ...weeks.map((w) => w.volume)),
-      exercise: Math.max(1, ...topExercises.map((x) => x[1]))
+      exercise: Math.max(1, ...topExercises.map((x) => x[1])),
+      exerciseRepsAll: Math.max(1, ...topExerciseRepsAll.map((x) => x[1])),
+      exerciseReps30: Math.max(1, ...topExerciseReps30.map((x) => x[1]))
     };
     const last30 = workouts.filter((w) => {
       const d = toDate(w.date);
-      return d && (now - d) <= 30 * 24 * 60 * 60 * 1000;
+      return d && (now - d) <= thirtyMs;
     }).length;
     const target = 8;
     const targetPct = Math.min(100, Math.round((last30 / target) * 100));
     const monthAdvice = last30 >= target ? 'Минимум месяца выполнен. Дальше держи ритм без перегруза.' : `До минимальной цели осталось ${Math.max(0, target - last30)} тренировк${target - last30 === 1 ? 'а' : 'и'}.`;
     const smart = calcSmartStats(workouts);
-    return { weeks, topExercises, max, last30, target, targetPct, monthAdvice, templateCounts, smart };
+    return { weeks, topExercises, topExerciseRepsAll, topExerciseReps30, max, last30, target, targetPct, monthAdvice, templateCounts, smart };
   }
 
   function barHtml(value, max, suffix = '') {
@@ -1480,6 +1493,14 @@
     if (a.topExercises.length) {
       lines.push('\nСамые частые упражнения:');
       a.topExercises.forEach(([name, count]) => lines.push(`• ${name}: ${count} раз`));
+    }
+    if (a.topExerciseRepsAll.length) {
+      lines.push('\nТоп упражнений по повторам за всё время:');
+      a.topExerciseRepsAll.forEach(([name, reps]) => lines.push(`• ${name}: ${Math.round(reps)} повт.`));
+    }
+    if (a.topExerciseReps30.length) {
+      lines.push('\nТоп упражнений по повторам за 30 дней:');
+      a.topExerciseReps30.forEach(([name, reps]) => lines.push(`• ${name}: ${Math.round(reps)} повт.`));
     }
     lines.push('\nУмные подсказки:');
     lines.push(`• Дней с последней тренировки: ${a.smart.daysSinceLast === null ? '—' : a.smart.daysSinceLast}. ${a.smart.regularityAdvice}`);
@@ -1508,6 +1529,14 @@
       <div class="bar-label">${escapeHtml(name)}</div>
       <div>${barHtml(count, a.max.exercise, ' раз')}</div>
     </div>`).join('') : '<div class="empty">Упражнения пока не накопились.</div>';
+    const repsAllHtml = a.topExerciseRepsAll.length ? a.topExerciseRepsAll.map(([name, reps]) => `<div class="bar-row">
+      <div class="bar-label">${escapeHtml(name)}</div>
+      <div>${barHtml(reps, a.max.exerciseRepsAll, ' повт.')}</div>
+    </div>`).join('') : '<div class="empty">Повторы пока не накопились.</div>';
+    const reps30Html = a.topExerciseReps30.length ? a.topExerciseReps30.map(([name, reps]) => `<div class="bar-row">
+      <div class="bar-label">${escapeHtml(name)}</div>
+      <div>${barHtml(reps, a.max.exerciseReps30, ' повт.')}</div>
+    </div>`).join('') : '<div class="empty">За последние 30 дней повторов пока нет.</div>';
     const templateA = a.templateCounts.strength || 0;
     const templateB = a.templateCounts.hinge || 0;
     const templateC = a.templateCounts.light || 0;
@@ -1524,6 +1553,16 @@
       <div class="analytics-box">
         <h3>Самые частые упражнения</h3>
         <div class="bar-list">${exercisesHtml}</div>
+      </div>
+      <div class="analytics-box">
+        <h3>Топ упражнений по повторам</h3>
+        <div class="tiny" style="margin-bottom:8px">За всё время</div>
+        <div class="bar-list">${repsAllHtml}</div>
+      </div>
+      <div class="analytics-box">
+        <h3>Повторы за 30 дней</h3>
+        <div class="tiny" style="margin-bottom:8px">Учитывает Минотавр как 55 повторений на каждое упражнение</div>
+        <div class="bar-list">${reps30Html}</div>
       </div>
       <div class="analytics-box" style="grid-column:1 / -1">
         <h3>Полезная статистика и подсказки</h3>
