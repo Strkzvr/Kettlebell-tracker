@@ -291,6 +291,7 @@
               <option value="strength">A · сила и база</option>
               <option value="hinge">B · махи, спина, корпус</option>
               <option value="light">C · лёгкая техника</option>
+              <option value="minotaur">Минотавр · 10→1</option>
               <option value="express">Экспресс 20 минут</option>
               <option value="late">Поздняя лёгкая</option>
               <option value="empty">Пустая тренировка</option>
@@ -303,6 +304,7 @@
               <option value="strength">A · сила и база</option>
               <option value="hinge">B · махи, спина, корпус</option>
               <option value="light">C · лёгкая техника</option>
+              <option value="minotaur">Минотавр · 10→1</option>
               <option value="base">База 3 круга</option>
               <option value="express">Экспресс 20 минут</option>
               <option value="late">Поздняя лёгкая</option>
@@ -316,7 +318,7 @@
           <button class="secondary" id="addExercise">+ упражнение</button>
         </div>
         <div id="exerciseList" class="exercise-list"></div>
-        <div class="backup-note" style="margin-top:10px">Если упражнения нет в списке, выбери «Другое» и впиши своё название. Порядок упражнений можно менять кнопками ↑/↓. Тип A/B/C для истории меняется в поле «Тип записи в истории».</div>
+        <div class="backup-note" style="margin-top:10px">Если упражнения нет в списке, выбери «Другое» и впиши своё название. Порядок упражнений можно менять кнопками ↑/↓. Тип A/B/C/Минотавр для истории меняется в поле «Тип записи в истории».</div>
         <div style="margin-top:10px">
           <label for="notes">Заметки</label>
           <textarea id="notes" placeholder="Например: без отказа, спина нормально, махи пошли легче..."></textarea>
@@ -427,7 +429,7 @@
   const STORAGE_KEY = 'kettlebell_tracker_v1';
   const DRAFT_KEY = 'kettlebell_tracker_draft_v1';
   const LAST_BACKUP_KEY = 'kettlebell_tracker_last_backup_v1';
-  const APP_VERSION = '2026-06-29-smart-stats-v1';
+  const APP_VERSION = '2026-06-29-minotaur-v1';
   let isSaving = false;
   let editingWorkoutId = null;
   let draftTimer = null;
@@ -445,6 +447,10 @@
     'Halo / круги вокруг головы (опционально)',
     'Подъём гири на грудь',
     'Трастер с гирей / присед + жим вверх',
+    'Высокие махи гирей',
+    'Подъём гири до подбородка',
+    'Тяга гири к поясу',
+    'Становая тяга',
     'Французский жим на трицепс',
     'Чемоданная переноска',
     'Фермерская прогулка',
@@ -499,6 +505,13 @@
       ['Фермерская прогулка', '2', '30 сек'],
       ['Мобильность / заминка', '1', '5 минут']
     ],
+    minotaur: [
+      ['Трастер с гирей / присед + жим вверх', '10', '10-1 лесенка'],
+      ['Высокие махи гирей', '10', '10-1 лесенка'],
+      ['Подъём гири до подбородка', '10', '10-1 лесенка'],
+      ['Тяга гири к поясу', '10', '10-1 лесенка'],
+      ['Становая тяга', '10', '10-1 лесенка']
+    ],
     express: [
       ['Гоблет-присед', '3', '10-12'],
       ['Тяга гири с пола', '3', '10-12'],
@@ -521,6 +534,7 @@
     strength: { duration: 30, intensity: 'Умеренная', notes: 'Тренировка A: сила и база. Спокойный темп, 2–3 повтора в запасе.' },
     hinge: { duration: 28, intensity: 'Умеренная', notes: 'Тренировка B: махи, спина, корпус. Halo пока необязателен. Следить за техникой, не гнаться за пульсом.' },
     light: { duration: 22, intensity: 'Лёгкая', notes: 'Тренировка C: лёгкая техника и восстановление. Хорошо после тяжёлого рабочего дня или позднего вечера.' },
+    minotaur: { duration: 30, intensity: 'Тяжёлая', notes: 'Минотавр: 10 кругов по убывающей 10→1. В каждом круге: трастер, высокие махи, подъём гири до подбородка, тяга к поясу, становая тяга. Отдых 1 минута между кругами. С 16 кг делать аккуратно, без отказа.' },
     express: { duration: 20, intensity: 'Умеренная', notes: 'Экспресс-тренировка.' },
     late: { duration: 20, intensity: 'Лёгкая', notes: 'Поздняя лёгкая тренировка, спокойно, без разгона пульса.' },
     empty: { duration: 25, intensity: 'Умеренная', notes: '' }
@@ -557,6 +571,12 @@
       when: 'После тяжёлого рабочего дня, поздно вечером или когда энергии мало.',
       remember: ['коротко и легко', 'без рекордов', 'можно заменить на 10–15 минут мобильности']
     },
+    minotaur: {
+      title: 'Минотавр · 10→1',
+      goal: 'Плотная круговая тренировка из 5 упражнений по убывающей лестнице.',
+      when: 'Выбирать только в день, когда есть силы и нет дискомфорта в плечах/пояснице.',
+      remember: ['10 кругов: 10 повторов, потом 9 и так до 1', 'отдых 1 минута между кругами', 'техника важнее скорости']
+    },
     express: {
       title: 'Экспресс 20 минут',
       goal: 'Быстро сделать базу, когда времени мало.',
@@ -582,6 +602,7 @@
     strength: 'A · сила и база',
     hinge: 'B · махи, спина, корпус',
     light: 'C · лёгкая техника',
+    minotaur: 'Минотавр · 10→1',
     base: 'База 3 круга',
     express: 'Экспресс 20 минут',
     late: 'Поздняя лёгкая',
@@ -862,6 +883,9 @@
     if (lastType === 'hinge') {
       return { key: 'strength', reason: 'После B логично вернуться к A: сила и база — ноги, тяга, жим и корпус.' };
     }
+    if (lastType === 'minotaur') {
+      return { key: 'light', reason: 'После Минотавра лучше сделать C: лёгкая техника и восстановление без плотной нагрузки.' };
+    }
     if (lastType === 'light' || lastType === 'late') {
       return { key: 'strength', reason: 'После лёгкой тренировки можно делать A, если есть силы. Если день тяжёлый — выбери C вручную.' };
     }
@@ -1004,7 +1028,7 @@
       if (cancelButton) cancelButton.style.display = '';
       if (status) {
         status.style.display = 'block';
-        status.innerHTML = `<b>Редактируешь сохранённую тренировку.</b><br>${workout ? escapeHtml(formatDate(workout.date)) : 'Запись загружена в форму'} · после сохранения история обновится без создания дубля. Тип A/B/C меняется в поле «Тип записи в истории», порядок упражнений — кнопками ↑/↓.`;
+        status.innerHTML = `<b>Редактируешь сохранённую тренировку.</b><br>${workout ? escapeHtml(formatDate(workout.date)) : 'Запись загружена в форму'} · после сохранения история обновится без создания дубля. Тип A/B/C/Минотавр меняется в поле «Тип записи в истории», порядок упражнений — кнопками ↑/↓.`;
       }
     } else {
       if (title) title.textContent = 'Новая тренировка';
@@ -1303,8 +1327,8 @@
     const tags = [];
     if (n.includes('присед') || n.includes('выпад') || n.includes('трастер')) tags.push('squat');
     if (n.includes('мах')) tags.push('swing');
-    if (n.includes('жим') || n.includes('трастер') || n.includes('halo') || n.includes('круги вокруг головы')) tags.push('press');
-    if (n.includes('тяга') || n.includes('подъём гири на грудь') || n.includes('подъем гири на грудь')) tags.push('pull');
+    if (n.includes('жим') || n.includes('трастер') || n.includes('подбород') || n.includes('halo') || n.includes('круги вокруг головы')) tags.push('press');
+    if (n.includes('тяга') || n.includes('подъём гири на грудь') || n.includes('подъем гири на грудь') || n.includes('подбород')) tags.push('pull');
     if (n.includes('перехват') || n.includes('планка') || n.includes('переноска') || n.includes('прогулка')) tags.push('core');
     return tags;
   }
@@ -1347,7 +1371,7 @@
       return (tags.includes('pull') || tags.includes('swing')) ? s + getExerciseReps(e) : s;
     }, 0), 0);
 
-    const templateCounts = { strength: 0, hinge: 0, light: 0, base: 0, express: 0, late: 0 };
+    const templateCounts = { strength: 0, hinge: 0, light: 0, base: 0, express: 0, late: 0, minotaur: 0 };
     workouts.forEach((w) => { const t = classifyWorkout(w); templateCounts[t] = (templateCounts[t] || 0) + 1; });
     const a = templateCounts.strength || 0;
     const b = templateCounts.hinge || 0;
