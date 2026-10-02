@@ -3,11 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Дневник гири</title>
+  <title>Training Challenge Tracker</title>
   <meta name="theme-color" content="#0f1412">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Дневник гири">
+  <meta name="apple-mobile-web-app-title" content="Challenge Tracker">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Личный трекер тренировок и физических челленджей: цели, быстрый ввод, статистика, история и резервные копии.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icon-192.png">
   <style>
     :root {
       --bg: #091015;
@@ -135,8 +138,19 @@
     .stat .txt { margin-top:7px; color:var(--muted); font-size:13px; }
 
     .history { display:grid; gap:10px; }
-    .workout { background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:17px; padding:13px; }
-    .workout-top { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+    .history-toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin:0 0 12px; }
+    .history-toolbar .muted { font-size:13px; }
+    .history-toolbar-actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .history-toolbar-actions button { padding:9px 11px; font-size:13px; }
+    .workout { background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:17px; padding:0; overflow:hidden; }
+    .workout > summary { list-style:none; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px; cursor:pointer; user-select:none; }
+    .workout > summary::-webkit-details-marker { display:none; }
+    .workout > summary::after { content:'⌄'; flex:0 0 auto; color:var(--muted); font-size:20px; line-height:1; transform:rotate(0deg); transition:transform .16s ease; }
+    .workout[open] > summary::after { transform:rotate(180deg); }
+    .workout > summary:hover { background:rgba(255,255,255,.025); }
+    .workout-summary-main { min-width:0; }
+    .workout-body { padding:0 13px 13px; border-top:1px solid var(--line); }
+    .workout-top { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; padding-top:12px; }
     .workout-date { font-weight:950; }
     .workout-meta { color:var(--muted); font-size:13px; margin-top:3px; }
     .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
@@ -203,6 +217,87 @@
     .insight { border:1px solid var(--line); border-radius:16px; padding:11px; background:rgba(255,255,255,.035); }
     .insight b { display:block; margin-bottom:4px; }
     .insight span { color:var(--muted); font-size:13px; line-height:1.4; }
+  
+
+    /* Challenge Tracker 2.0 */
+    .app-nav { position:sticky; top:max(8px, env(safe-area-inset-top)); z-index:9; display:flex; gap:8px; overflow-x:auto; padding:8px; margin:0 0 14px; border:1px solid var(--line); border-radius:18px; background:rgba(10,16,21,.82); backdrop-filter:blur(18px); box-shadow:0 12px 40px rgba(0,0,0,.22); scrollbar-width:none; }
+    .app-nav::-webkit-scrollbar{display:none;}
+    .app-nav button { flex:0 0 auto; padding:10px 13px; color:var(--muted); background:transparent; border:1px solid transparent; font-size:13px; }
+    .app-nav button.active, .app-nav button:hover { color:var(--text); background:rgba(117,200,91,.09); border-color:rgba(117,200,91,.18); }
+    .challenge-hero { display:flex; justify-content:space-between; align-items:center; gap:14px; }
+    .challenge-hero h2 { font-size:clamp(25px,5vw,36px); margin:4px 0 4px; letter-spacing:-.04em; }
+    .challenge-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:14px; }
+    @media(max-width:780px){ .challenge-grid{grid-template-columns:1fr;} .challenge-hero{align-items:flex-start; flex-direction:column;} }
+    .challenge-card { position:relative; background:linear-gradient(180deg, rgba(29,41,50,.92), rgba(16,24,31,.92)); border:1px solid var(--line); border-radius:24px; padding:17px; overflow:hidden; }
+    .challenge-card.primary { grid-column:1/-1; border-color:rgba(117,200,91,.42); box-shadow:0 18px 44px rgba(0,0,0,.22); }
+    .challenge-card.primary::before { content:"АКТУАЛЬНЫЙ"; display:inline-block; margin-bottom:10px; padding:5px 8px; border-radius:999px; background:var(--accent-soft); border:1px solid rgba(117,200,91,.25); color:var(--accent); font-size:10px; font-weight:900; letter-spacing:.08em; }
+    .completed-challenges { grid-column:1/-1; margin-top:2px; border:1px solid var(--line); border-radius:20px; background:rgba(255,255,255,.025); overflow:hidden; }
+    .completed-challenges > summary { cursor:pointer; padding:15px 17px; font-weight:900; display:flex; align-items:center; justify-content:space-between; gap:10px; list-style:none; }
+    .completed-challenges > summary::-webkit-details-marker { display:none; }
+    .completed-challenges > summary::after { content:"⌄"; color:var(--muted); font-size:18px; transition:transform .18s ease; }
+    .completed-challenges[open] > summary::after { transform:rotate(180deg); }
+    .completed-list { display:grid; gap:9px; padding:0 12px 12px; }
+    .completed-item { border:1px solid var(--line); border-radius:16px; background:rgba(0,0,0,.12); overflow:hidden; }
+    .completed-item > summary { cursor:pointer; padding:12px 13px; display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; list-style:none; }
+    .completed-item > summary::-webkit-details-marker { display:none; }
+    .completed-item-title { min-width:0; }
+    .completed-item-title b { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .completed-item-meta { color:var(--muted); font-size:11px; margin-top:3px; }
+    .completed-item-result { text-align:right; font-weight:950; color:var(--accent); white-space:nowrap; }
+    .completed-item-body { padding:0 10px 10px; }
+    .completed-item-body .challenge-card { border-radius:14px; background:rgba(16,24,31,.72); }
+    .challenge-card::after { content:""; position:absolute; inset:auto -60px -70px auto; width:180px; height:180px; border-radius:50%; background:rgba(117,200,91,.055); pointer-events:none; }
+    .challenge-title-row { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+    .challenge-name { display:flex; gap:10px; align-items:center; min-width:0; }
+    .challenge-icon { width:42px; height:42px; border-radius:14px; display:grid; place-items:center; background:var(--accent-soft); border:1px solid rgba(117,200,91,.22); font-size:22px; flex:0 0 auto; }
+    .challenge-name h3 { margin:0; font-size:20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .challenge-period { color:var(--muted); font-size:12px; margin-top:3px; }
+    .pace-badge { flex:0 0 auto; border-radius:999px; padding:7px 9px; font-size:11px; font-weight:900; border:1px solid var(--line); color:var(--muted); background:rgba(255,255,255,.035); }
+    .pace-badge.ahead,.pace-badge.done { color:var(--accent-strong); border-color:rgba(117,200,91,.25); background:rgba(117,200,91,.09); }
+    .pace-badge.behind { color:var(--gold); border-color:rgba(242,189,94,.26); background:rgba(242,189,94,.09); }
+    .challenge-progress-head { display:flex; justify-content:space-between; gap:10px; align-items:end; margin-top:18px; }
+    .challenge-progress-head .big { font-size:32px; font-weight:950; letter-spacing:-.045em; line-height:1; }
+    .challenge-progress-head .pct { font-size:22px; font-weight:950; color:var(--accent); }
+    .challenge-progress { height:10px; margin-top:9px; background:rgba(255,255,255,.07); border-radius:999px; overflow:hidden; }
+    .challenge-progress > i { display:block; height:100%; width:0; border-radius:inherit; background:linear-gradient(90deg,var(--accent),var(--accent-strong)); }
+    .challenge-metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin-top:13px; }
+    .challenge-metric { padding:9px; border:1px solid var(--line); background:rgba(255,255,255,.03); border-radius:14px; min-width:0; }
+    .challenge-metric b { display:block; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .challenge-metric span { display:block; margin-top:3px; color:var(--muted); font-size:10px; line-height:1.2; }
+    @media(max-width:500px){ .challenge-title-row{display:block;} .pace-badge{display:inline-block; margin-top:9px;} .challenge-name h3{white-space:normal; overflow:visible;} }
+    @media(max-width:430px){ .challenge-metrics{grid-template-columns:1fr 1fr;} }
+    .quick-add { display:flex; flex-wrap:wrap; gap:7px; margin-top:13px; }
+    .quick-add button { padding:10px 12px; min-width:54px; }
+    .manual-add { display:grid; grid-template-columns:1fr 118px auto; gap:7px; margin-top:8px; }
+    .manual-add input { padding:10px 11px; }
+    @media(max-width:500px){ .manual-add{grid-template-columns:1fr 1fr;} .manual-add button{grid-column:1/-1;} }
+    .challenge-mini-chart { height:62px; display:flex; align-items:end; gap:3px; margin-top:14px; padding-top:8px; border-top:1px solid var(--line); overflow:hidden; }
+    .challenge-bar { flex:1 1 0; min-width:3px; max-width:14px; height:5%; border-radius:4px 4px 1px 1px; background:rgba(117,200,91,.72); opacity:.9; }
+    .challenge-bar.zero { background:rgba(255,255,255,.07); opacity:1; height:4%!important; }
+    .challenge-tools { margin-top:10px; }
+    .challenge-tools summary { color:var(--muted); font-size:12px; }
+    .challenge-tools .actions button { padding:9px 10px; font-size:12px; }
+    .challenge-editor { margin-top:14px; }
+    .challenge-editor.hidden { display:none; }
+    .challenge-form-grid { display:grid; grid-template-columns:1.35fr .65fr .65fr; gap:10px; }
+    .challenge-form-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+    @media(max-width:700px){ .challenge-form-grid,.challenge-form-grid2{grid-template-columns:1fr;} }
+    .challenge-list-empty { padding:28px 16px; }
+    .challenge-history-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .challenge-history-toolbar select { width:auto; min-width:210px; }
+    .challenge-entry { display:grid; grid-template-columns:92px 1fr auto; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); }
+    .challenge-entry:last-child{border-bottom:0;}
+    .challenge-entry .amount { font-size:18px; font-weight:950; text-align:right; }
+    .challenge-entry .source { color:var(--muted); font-size:11px; margin-top:2px; }
+    .challenge-entry-actions { display:flex; gap:5px; justify-content:flex-end; margin-top:5px; }
+    .challenge-entry-actions button { padding:6px 8px; font-size:11px; }
+    @media(max-width:500px){ .challenge-entry{grid-template-columns:76px 1fr;} .challenge-entry .amount{grid-column:2; text-align:left;} }
+    .archived-grid { display:grid; gap:8px; margin-top:10px; }
+    .archived-row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px; border:1px solid var(--line); border-radius:15px; background:rgba(255,255,255,.03); }
+    .cloud-note { display:flex; gap:10px; align-items:flex-start; padding:11px 12px; border-radius:16px; border:1px solid rgba(117,200,91,.18); background:rgba(117,200,91,.055); color:var(--muted); font-size:12px; line-height:1.45; margin-top:10px; }
+    .cloud-note b{color:var(--text);}
+    .section-anchor { scroll-margin-top:86px; }
+
   </style>
 </head>
 <body>
@@ -210,10 +305,10 @@
     <header class="app-header">
       <div>
         <div class="title-row">
-          <div class="kettlebell-mark">⌁</div>
-          <h1>Дневник гири</h1>
+          <div class="kettlebell-mark">✓</div>
+          <h1>Training Tracker</h1>
         </div>
-        <p class="subtitle">Главный экран стал проще: сегодня, следующая тренировка, цель на 30 дней, недавние записи и быстрый доступ к форме и аналитике.</p>
+        <p class="subtitle">Тренировки с гирей и любые физические челленджи в одном месте: цель, быстрый ввод, темп, история и статистика.</p>
       </div>
       <div class="header-actions">
         <button class="icon-btn" id="jumpAnalyticsTop" title="Аналитика" type="button">▥</button>
@@ -221,7 +316,114 @@
       </div>
     </header>
 
-    <section class="dashboard-grid">
+    <nav class="app-nav" aria-label="Навигация">
+      <button type="button" data-jump-target="challengeSection" class="active">Челленджи</button>
+      <button type="button" data-jump-target="workoutsDashboard">Сегодня</button>
+      <button type="button" data-jump-target="formCard">Тренировка</button>
+      <button type="button" data-jump-target="analyticsSection">Статистика</button>
+      <button type="button" data-jump-target="historySection">История</button>
+    </nav>
+
+    <section class="section-anchor" id="challengeSection">
+      <div class="card challenge-hero">
+        <div>
+          <div class="mini-label">Monthly / Custom Challenge</div>
+          <h2>Челленджи</h2>
+          <div class="muted">Отжимания, приседания, подтягивания, махи, планка, километры, тренировки — или любой свой показатель.</div>
+        </div>
+        <button type="button" id="newChallengeBtn">＋ Новый челлендж</button>
+      </div>
+
+      <div id="challengeOverview" class="challenge-grid"></div>
+
+      <section id="challengeEditor" class="card challenge-editor hidden section-anchor">
+        <div class="next-head">
+          <div>
+            <h2 id="challengeEditorTitle">Новый челлендж</h2>
+            <div class="muted">Можно вести несколько челленджей одновременно. Даты и единицы измерения задаются отдельно для каждого.</div>
+          </div>
+          <button type="button" class="secondary" id="closeChallengeEditor">Закрыть</button>
+        </div>
+        <input type="hidden" id="challengeEditId">
+        <div class="challenge-form-grid" style="margin-top:12px">
+          <div>
+            <label for="challengeName">Название</label>
+            <input id="challengeName" placeholder="Например: 5000 отжиманий">
+          </div>
+          <div>
+            <label for="challengeIcon">Значок</label>
+            <input id="challengeIcon" maxlength="4" value="🔥" placeholder="🔥">
+          </div>
+          <div>
+            <label for="challengeGoal">Цель</label>
+            <input id="challengeGoal" type="number" inputmode="decimal" min="0.01" step="any" placeholder="5000">
+          </div>
+        </div>
+        <div class="challenge-form-grid2">
+          <div>
+            <label for="challengeUnit">Единица</label>
+            <select id="challengeUnit">
+              <option value="reps">Повторения</option>
+              <option value="minutes">Минуты</option>
+              <option value="km">Километры</option>
+              <option value="sessions">Тренировки / занятия</option>
+              <option value="custom">Своя единица</option>
+            </select>
+          </div>
+          <div>
+            <label for="challengeCustomUnit">Своя единица (если нужна)</label>
+            <input id="challengeCustomUnit" placeholder="например: этажей">
+          </div>
+        </div>
+        <div class="challenge-form-grid2">
+          <div>
+            <label for="challengeStart">Начало</label>
+            <input id="challengeStart" type="date">
+          </div>
+          <div>
+            <label for="challengeEnd">Окончание</label>
+            <input id="challengeEnd" type="date">
+          </div>
+        </div>
+        <div class="challenge-form-grid2">
+          <div>
+            <label for="challengeQuick">Быстрые кнопки</label>
+            <input id="challengeQuick" placeholder="10, 20, 25, 50">
+            <div class="tiny" style="margin-top:5px">Через запятую. Для километров можно 0.5, 1, 2, 5.</div>
+          </div>
+          <div>
+            <label for="challengeLinkedExercise">Связать с упражнением из дневника (опционально)</label>
+            <input id="challengeLinkedExercise" list="exerciseNameOptions" placeholder="Например: Махи двумя руками">
+            <datalist id="exerciseNameOptions"></datalist>
+            <div class="tiny" style="margin-top:5px">Для челленджа в повторениях такие повторы автоматически прибавятся из сохранённых тренировок.</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" id="saveChallengeBtn">Сохранить челлендж</button>
+          <button type="button" class="secondary" id="cancelChallengeBtn">Отмена</button>
+        </div>
+      </section>
+
+      <section class="card section section-anchor" id="challengeHistorySection">
+        <div class="next-head">
+          <div>
+            <h2>История активности</h2>
+            <div class="muted">Ручные записи можно исправлять или удалять. Записи из тренировок пересчитываются автоматически.</div>
+          </div>
+          <div class="challenge-history-toolbar">
+            <select id="challengeHistoryFilter" aria-label="Выбрать челлендж"></select>
+            <button class="secondary" type="button" id="exportChallengeCsv">CSV челленджей</button>
+          </div>
+        </div>
+        <div id="challengeHistory" style="margin-top:10px"></div>
+        <details class="section" id="archivedChallengesDetails">
+          <summary>Архив челленджей</summary>
+          <div id="archivedChallenges" class="archived-grid"></div>
+        </details>
+      </section>
+    </section>
+
+    <section class="dashboard-grid section-anchor" id="workoutsDashboard">
       <div class="card today-card dashboard-wide">
         <div class="today-head">
           <div>
@@ -334,25 +536,26 @@
         <h2>Быстрые действия</h2>
         <details open>
           <summary>Как сохранять прогресс</summary>
-          <div class="backup-note">Данные сохраняются в браузере на этом устройстве. Чтобы не потерять историю, делай JSON-бэкап и сохраняй его в облако или Telegram.</div>
+          <div class="backup-note">Тренировки и челленджи сохраняются в браузере на этом устройстве. Полный JSON-бэкап содержит оба раздела.</div>
           <div class="install-grid">
             <div class="install-step"><b>1. Записал</b><span>После тренировки нажми «Сохранить тренировку».</span></div>
-            <div class="install-step"><b>2. Сохранил</b><span>Раз в неделю скачай JSON-бэкап.</span></div>
-            <div class="install-step"><b>3. Восстановил</b><span>На новом устройстве нажми «Восстановить из JSON».</span></div>
+            <div class="install-step"><b>2. Сохранил</b><span>Раз в неделю скачай полный JSON-бэкап.</span></div>
+            <div class="install-step"><b>3. Восстановил</b><span>На новом устройстве нажми «Восстановить из JSON» — восстановятся тренировки и челленджи.</span></div>
           </div>
         </details>
+        <div class="cloud-note"><span>☁️</span><div><b>Cloudflare Pages ready.</b> Приложение работает как статический PWA. Данные остаются локально в браузере; полный JSON нужен для переноса между телефонами или доменами.</div></div>
         <div class="actions">
-          <button class="secondary" id="seedWorkouts">Загрузить мои 5 тренировок</button>
-          <button class="secondary" id="exportJson">Скачать JSON-бэкап</button>
+          <button class="secondary" id="seedWorkouts">Загрузить пример тренировок</button>
+          <button class="secondary" id="exportJson">Скачать полный JSON-бэкап</button>
           <button class="secondary" id="exportCsv">Экспорт CSV</button>
           <button class="secondary" id="importBtn">Восстановить из JSON</button>
           <input id="importFile" class="file-input" type="file" accept="application/json,.json">
         </div>
         <div class="actions">
           <button class="warn" id="copySummary">Скопировать статистику</button>
-          <button class="secondary" id="copyBackup">Скопировать JSON</button>
+          <button class="secondary" id="copyBackup">Скопировать полный JSON</button>
           <button class="secondary" id="copySaveGuide">Скопировать инструкцию</button>
-          <button class="danger" id="resetAll">Сбросить всё</button>
+          <button class="danger" id="resetAll">Сбросить тренировки</button>
         </div>
       </aside>
     </section>
@@ -417,6 +620,13 @@
 
     <section class="card section" id="historySection">
       <h2>История тренировок</h2>
+      <div class="history-toolbar">
+        <div class="muted" id="historyCount">Тренировок: 0</div>
+        <div class="history-toolbar-actions">
+          <button class="secondary" type="button" id="expandAllWorkouts">Развернуть все</button>
+          <button class="secondary" type="button" id="collapseAllWorkouts">Свернуть все</button>
+        </div>
+      </div>
       <div id="history" class="history"></div>
     </section>
   </div>
@@ -429,7 +639,8 @@
   const STORAGE_KEY = 'kettlebell_tracker_v1';
   const DRAFT_KEY = 'kettlebell_tracker_draft_v1';
   const LAST_BACKUP_KEY = 'kettlebell_tracker_last_backup_v1';
-  const APP_VERSION = '2026-07-01-reps-analytics-v1';
+  const CHALLENGE_STORAGE_KEY = 'training_challenges_v1';
+  const APP_VERSION = '2026-10-02-challenges-v1.2-current-first-completed-collapsible';
   let isSaving = false;
   let editingWorkoutId = null;
   let draftTimer = null;
@@ -731,6 +942,498 @@
   function newId() {
     if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
     return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+
+  function dateFromISO(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+    if (!m) return null;
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  }
+
+  function isoFromDate(d) {
+    if (!(d instanceof Date) || Number.isNaN(d.getTime())) return todayISO();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function addDaysISO(iso, days) {
+    const d = dateFromISO(iso) || dateFromISO(todayISO());
+    d.setDate(d.getDate() + Number(days || 0));
+    return isoFromDate(d);
+  }
+
+  function inclusiveDays(startISO, endISO) {
+    const a = dateFromISO(startISO); const b = dateFromISO(endISO);
+    if (!a || !b || b < a) return 0;
+    return Math.floor((b - a) / 86400000) + 1;
+  }
+
+  function defaultChallengeDates() {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { start: isoFromDate(start), end: isoFromDate(end) };
+  }
+
+  function normalizeQuickValues(value, unit) {
+    const defaults = unit === 'minutes' ? [1, 5, 10, 15]
+      : unit === 'km' ? [0.5, 1, 2, 5]
+      : unit === 'sessions' ? [1]
+      : unit === 'custom' ? [1, 5, 10, 25]
+      : [10, 20, 25, 50];
+    const source = Array.isArray(value) ? value : String(value || '').split(/[;,\s]+/);
+    const parsed = source.map(Number).filter((x) => Number.isFinite(x) && x > 0).slice(0, 8);
+    return parsed.length ? Array.from(new Set(parsed)) : defaults;
+  }
+
+  function normalizeChallenge(c) {
+    const d = defaultChallengeDates();
+    const unit = ['reps','minutes','km','sessions','custom'].includes(c?.unit) ? c.unit : 'reps';
+    let startDate = /^\d{4}-\d{2}-\d{2}$/.test(String(c?.startDate || '')) ? String(c.startDate) : d.start;
+    let endDate = /^\d{4}-\d{2}-\d{2}$/.test(String(c?.endDate || '')) ? String(c.endDate) : d.end;
+    if (endDate < startDate) endDate = startDate;
+    return {
+      id: c?.id ? String(c.id) : newId(),
+      name: String(c?.name || 'Новый челлендж').trim().slice(0, 80) || 'Новый челлендж',
+      icon: String(c?.icon || '🔥').trim().slice(0, 4) || '🔥',
+      goal: Math.max(0.01, Number(c?.goal || 1)),
+      unit,
+      customUnit: String(c?.customUnit || '').trim().slice(0, 24),
+      startDate,
+      endDate,
+      quickValues: normalizeQuickValues(c?.quickValues, unit),
+      linkedExercise: unit === 'reps' ? String(c?.linkedExercise || '').trim().slice(0, 120) : '',
+      createdAt: c?.createdAt || new Date().toISOString(),
+      archivedAt: c?.archivedAt || null
+    };
+  }
+
+  function normalizeChallengeEntry(e, challengeIds) {
+    if (!e || !challengeIds.has(String(e.challengeId || ''))) return null;
+    const amount = Number(e.amount || 0);
+    if (!Number.isFinite(amount) || amount <= 0) return null;
+    return {
+      id: e.id ? String(e.id) : newId(),
+      challengeId: String(e.challengeId),
+      date: /^\d{4}-\d{2}-\d{2}$/.test(String(e.date || '')) ? String(e.date) : todayISO(),
+      amount,
+      note: String(e.note || '').trim().slice(0, 300),
+      createdAt: e.createdAt || new Date().toISOString()
+    };
+  }
+
+  function normalizeChallengeData(raw) {
+    const safe = raw && typeof raw === 'object' ? raw : {};
+    const challenges = (Array.isArray(safe.challenges) ? safe.challenges : []).map(normalizeChallenge);
+    const ids = new Set(challenges.map((c) => c.id));
+    const entries = (Array.isArray(safe.entries) ? safe.entries : []).map((e) => normalizeChallengeEntry(e, ids)).filter(Boolean);
+    return { version: 1, challenges, entries };
+  }
+
+  function loadChallengeData() {
+    try {
+      const raw = localStorage.getItem(CHALLENGE_STORAGE_KEY);
+      return normalizeChallengeData(raw ? JSON.parse(raw) : {});
+    } catch (e) {
+      console.warn('Challenge storage read failed', e);
+      return normalizeChallengeData({});
+    }
+  }
+
+  function saveChallengeData(data) {
+    localStorage.setItem(CHALLENGE_STORAGE_KEY, JSON.stringify(normalizeChallengeData(data)));
+  }
+
+  function getChallengeUnitLabel(c) {
+    if (c.unit === 'minutes') return 'мин';
+    if (c.unit === 'km') return 'км';
+    if (c.unit === 'sessions') return 'занят.';
+    if (c.unit === 'custom') return c.customUnit || 'ед.';
+    return 'повт.';
+  }
+
+  function formatChallengeNumber(value) {
+    const n = Number(value || 0);
+    if (!Number.isFinite(n)) return '0';
+    const digits = Math.abs(n - Math.round(n)) < 1e-9 ? 0 : 2;
+    return n.toLocaleString('ru-RU', { maximumFractionDigits: digits });
+  }
+
+  function challengeWorkoutEntries(challenge) {
+    if (!challenge.linkedExercise || challenge.unit !== 'reps') return [];
+    const target = challenge.linkedExercise.trim().toLowerCase();
+    return loadWorkouts().filter((w) => w.date >= challenge.startDate && w.date <= challenge.endDate).map((w) => {
+      const amount = (w.exercises || []).reduce((sum, ex) => {
+        if (String(ex.name || '').trim().toLowerCase() !== target) return sum;
+        return sum + getExerciseReps(ex);
+      }, 0);
+      if (!amount) return null;
+      return {
+        id: `workout:${challenge.id}:${w.id}`,
+        challengeId: challenge.id,
+        date: w.date,
+        amount,
+        note: `Из тренировки · ${templateLabels[classifyWorkout(w)] || 'тренировка'}`,
+        createdAt: `${w.date}T12:00:00`,
+        source: 'workout',
+        workoutId: w.id
+      };
+    }).filter(Boolean);
+  }
+
+  function getAllChallengeEntries(challenge, data) {
+    const manual = data.entries.filter((e) => e.challengeId === challenge.id && e.date >= challenge.startDate && e.date <= challenge.endDate).map((e) => ({ ...e, source: 'manual' }));
+    return manual.concat(challengeWorkoutEntries(challenge));
+  }
+
+  function challengeDailyMap(challenge, data) {
+    const map = {};
+    getAllChallengeEntries(challenge, data).forEach((e) => { map[e.date] = (map[e.date] || 0) + Number(e.amount || 0); });
+    return map;
+  }
+
+  function calcChallengeStats(challenge, data) {
+    const daily = challengeDailyMap(challenge, data);
+    const entries = getAllChallengeEntries(challenge, data);
+    const total = entries.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const goal = Math.max(0.01, Number(challenge.goal || 1));
+    const progress = Math.min(999, total / goal * 100);
+    const today = todayISO();
+    const totalDays = Math.max(1, inclusiveDays(challenge.startDate, challenge.endDate));
+    let elapsedDays = 0;
+    if (today >= challenge.startDate) elapsedDays = today > challenge.endDate ? totalDays : inclusiveDays(challenge.startDate, today);
+    const planned = goal * (elapsedDays / totalDays);
+    const paceDiff = total - planned;
+    const startForRemaining = today < challenge.startDate ? challenge.startDate : today;
+    const remainingDays = today > challenge.endDate ? 0 : Math.max(1, inclusiveDays(startForRemaining, challenge.endDate));
+    const remaining = Math.max(0, goal - total);
+    const dailyNeed = remainingDays ? remaining / remainingDays : remaining;
+    const todayAmount = Number(daily[today] || 0);
+    let streak = 0;
+    let cursor = today > challenge.endDate ? challenge.endDate : today;
+    if (cursor >= challenge.startDate) {
+      while (cursor >= challenge.startDate && Number(daily[cursor] || 0) > 0) { streak += 1; cursor = addDaysISO(cursor, -1); }
+    }
+    let bestDay = 0; let bestDate = null;
+    Object.entries(daily).forEach(([date, amount]) => { if (amount > bestDay) { bestDay = amount; bestDate = date; } });
+    let status = 'on'; let statusText = 'По плану';
+    if (total >= goal) { status = 'done'; statusText = 'Цель выполнена'; }
+    else if (today < challenge.startDate) { status = 'future'; statusText = 'Ещё не начался'; }
+    else if (today > challenge.endDate) { status = 'behind'; statusText = 'Период завершён'; }
+    else {
+      const tolerance = Math.max(goal / totalDays * 0.75, goal * 0.01);
+      if (paceDiff > tolerance) { status = 'ahead'; statusText = `+${formatChallengeNumber(paceDiff)} впереди`; }
+      else if (paceDiff < -tolerance) { status = 'behind'; statusText = `${formatChallengeNumber(Math.abs(paceDiff))} до графика`; }
+    }
+    return { daily, entries, total, goal, progress, totalDays, elapsedDays, planned, paceDiff, remainingDays, remaining, dailyNeed, todayAmount, streak, bestDay, bestDate, status, statusText };
+  }
+
+  function challengeChartHtml(challenge, stats) {
+    const today = todayISO();
+    const end = today < challenge.startDate ? challenge.startDate : (today > challenge.endDate ? challenge.endDate : today);
+    const allDays = Math.max(1, inclusiveDays(challenge.startDate, end));
+    const show = Math.min(31, allDays);
+    const start = addDaysISO(end, -(show - 1));
+    const values = [];
+    let cursor = start;
+    for (let i = 0; i < show; i += 1) { values.push(Number(stats.daily[cursor] || 0)); cursor = addDaysISO(cursor, 1); }
+    const max = Math.max(1, ...values);
+    return values.map((v) => `<i class="challenge-bar ${v ? '' : 'zero'}" title="${escapeHtml(formatChallengeNumber(v))}" style="height:${Math.max(5, v / max * 100)}%"></i>`).join('');
+  }
+
+  function renderExerciseOptions() {
+    const node = $('exerciseNameOptions');
+    if (!node) return;
+    const names = new Set(exercises.filter((x) => x !== 'Другое'));
+    loadWorkouts().forEach((w) => (w.exercises || []).forEach((e) => e.name && names.add(e.name)));
+    node.innerHTML = Array.from(names).sort((a,b) => a.localeCompare(b, 'ru')).map((n) => `<option value="${escapeHtml(n)}"></option>`).join('');
+  }
+
+  function openChallengeEditor(challenge) {
+    const editor = $('challengeEditor');
+    if (!editor) return;
+    const d = defaultChallengeDates();
+    $('challengeEditId').value = challenge?.id || '';
+    $('challengeEditorTitle').textContent = challenge ? 'Редактировать челлендж' : 'Новый челлендж';
+    $('challengeName').value = challenge?.name || '';
+    $('challengeIcon').value = challenge?.icon || '🔥';
+    $('challengeGoal').value = challenge?.goal || '';
+    $('challengeUnit').value = challenge?.unit || 'reps';
+    $('challengeCustomUnit').value = challenge?.customUnit || '';
+    $('challengeStart').value = challenge?.startDate || d.start;
+    $('challengeEnd').value = challenge?.endDate || d.end;
+    $('challengeQuick').value = (challenge?.quickValues || normalizeQuickValues('', challenge?.unit || 'reps')).join(', ');
+    $('challengeLinkedExercise').value = challenge?.linkedExercise || '';
+    renderExerciseOptions();
+    syncChallengeFormUnit();
+    editor.classList.remove('hidden');
+    editor.scrollIntoView({ behavior:'smooth', block:'start' });
+    setTimeout(() => $('challengeName')?.focus(), 250);
+  }
+
+  function closeChallengeEditor() {
+    $('challengeEditor')?.classList.add('hidden');
+    if ($('challengeEditId')) $('challengeEditId').value = '';
+  }
+
+  function syncChallengeFormUnit() {
+    if (!$('challengeUnit')) return;
+    const unit = $('challengeUnit').value;
+    $('challengeCustomUnit').disabled = unit !== 'custom';
+    $('challengeLinkedExercise').disabled = unit !== 'reps';
+    if (unit !== 'reps') $('challengeLinkedExercise').value = '';
+    if (!$('challengeQuick').value.trim()) $('challengeQuick').value = normalizeQuickValues('', unit).join(', ');
+  }
+
+  function collectChallengeForm() {
+    const id = $('challengeEditId').value || newId();
+    const name = $('challengeName').value.trim();
+    const goal = Number($('challengeGoal').value);
+    const startDate = $('challengeStart').value;
+    const endDate = $('challengeEnd').value;
+    if (!name) throw new Error('Укажи название челленджа');
+    if (!Number.isFinite(goal) || goal <= 0) throw new Error('Цель должна быть больше нуля');
+    if (!startDate || !endDate) throw new Error('Укажи даты челленджа');
+    if (endDate < startDate) throw new Error('Дата окончания раньше начала');
+    const existing = loadChallengeData().challenges.find((c) => c.id === id);
+    return normalizeChallenge({
+      id, name, icon: $('challengeIcon').value, goal,
+      unit: $('challengeUnit').value, customUnit: $('challengeCustomUnit').value,
+      startDate, endDate, quickValues: $('challengeQuick').value,
+      linkedExercise: $('challengeLinkedExercise').value,
+      createdAt: existing?.createdAt || new Date().toISOString(), archivedAt: existing?.archivedAt || null
+    });
+  }
+
+  function saveChallengeFromForm() {
+    try {
+      const challenge = collectChallengeForm();
+      const data = loadChallengeData();
+      const idx = data.challenges.findIndex((c) => c.id === challenge.id);
+      if (idx >= 0) data.challenges[idx] = challenge; else data.challenges.push(challenge);
+      saveChallengeData(data);
+      closeChallengeEditor();
+      renderChallenges();
+      showToast(idx >= 0 ? 'Челлендж обновлён' : 'Челлендж создан');
+    } catch (e) { showToast(e.message || 'Проверь данные челленджа'); }
+  }
+
+  function addChallengeEntry(challengeId, amount, date, note='') {
+    const data = loadChallengeData();
+    const challenge = data.challenges.find((c) => c.id === challengeId);
+    const value = Number(amount);
+    const entryDate = date || todayISO();
+    if (!challenge || !Number.isFinite(value) || value <= 0) return showToast('Укажи количество больше нуля');
+    if (entryDate < challenge.startDate || entryDate > challenge.endDate) return showToast('Дата вне периода челленджа');
+    data.entries.push({ id:newId(), challengeId, date:entryDate, amount:value, note:String(note || ''), createdAt:new Date().toISOString() });
+    saveChallengeData(data);
+    renderChallenges();
+    showToast(`Добавлено: +${formatChallengeNumber(value)} ${getChallengeUnitLabel(challenge)}`);
+  }
+
+  function editChallengeEntry(entryId) {
+    const data = loadChallengeData();
+    const entry = data.entries.find((e) => e.id === entryId);
+    if (!entry) return;
+    const challenge = data.challenges.find((c) => c.id === entry.challengeId);
+    const amountRaw = window.prompt(`Количество (${getChallengeUnitLabel(challenge)}):`, String(entry.amount));
+    if (amountRaw === null) return;
+    const amount = Number(String(amountRaw).replace(',', '.'));
+    if (!Number.isFinite(amount) || amount <= 0) return showToast('Некорректное количество');
+    const dateRaw = window.prompt('Дата YYYY-MM-DD:', entry.date);
+    if (dateRaw === null) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateRaw) || dateRaw < challenge.startDate || dateRaw > challenge.endDate) return showToast('Некорректная дата');
+    const note = window.prompt('Заметка (необязательно):', entry.note || '');
+    if (note === null) return;
+    entry.amount = amount; entry.date = dateRaw; entry.note = note.trim();
+    saveChallengeData(data); renderChallenges(); showToast('Запись исправлена');
+  }
+
+  function deleteChallengeEntry(entryId) {
+    const data = loadChallengeData();
+    const entry = data.entries.find((e) => e.id === entryId);
+    if (!entry || !confirm('Удалить эту запись?')) return;
+    data.entries = data.entries.filter((e) => e.id !== entryId);
+    saveChallengeData(data); renderChallenges(); showToast('Запись удалена');
+  }
+
+  function archiveChallenge(id, restore=false) {
+    const data = loadChallengeData();
+    const c = data.challenges.find((x) => x.id === id); if (!c) return;
+    c.archivedAt = restore ? null : new Date().toISOString();
+    saveChallengeData(data); renderChallenges(); showToast(restore ? 'Челлендж возвращён' : 'Челлендж в архиве');
+  }
+
+  function deleteChallenge(id) {
+    const data = loadChallengeData();
+    const c = data.challenges.find((x) => x.id === id); if (!c) return;
+    if (!confirm(`Удалить челлендж «${c.name}» и все его ручные записи?`)) return;
+    data.challenges = data.challenges.filter((x) => x.id !== id);
+    data.entries = data.entries.filter((e) => e.challengeId !== id);
+    saveChallengeData(data); renderChallenges(); showToast('Челлендж удалён');
+  }
+
+  function renderChallengeCard(challenge, data, options={}) {
+    const s = calcChallengeStats(challenge, data);
+    const unit = getChallengeUnitLabel(challenge);
+    const quick = challenge.quickValues.map((v) => `<button type="button" data-challenge-quick="${escapeHtml(challenge.id)}" data-amount="${v}">+${formatChallengeNumber(v)}</button>`).join('');
+    const linked = challenge.linkedExercise ? `<span class="chip">↗ ${escapeHtml(challenge.linkedExercise)}</span>` : '';
+    const primaryClass = options.primary ? ' primary' : '';
+    return `<article class="challenge-card${primaryClass}" data-challenge-card="${escapeHtml(challenge.id)}">
+      <div class="challenge-title-row">
+        <div class="challenge-name"><div class="challenge-icon">${escapeHtml(challenge.icon)}</div><div><h3>${escapeHtml(challenge.name)}</h3><div class="challenge-period">${escapeHtml(formatDate(challenge.startDate))} — ${escapeHtml(formatDate(challenge.endDate))}</div></div></div>
+        <div class="pace-badge ${escapeHtml(s.status)}">${escapeHtml(s.statusText)}</div>
+      </div>
+      <div class="challenge-progress-head"><div><div class="big">${formatChallengeNumber(s.total)} <span class="tiny">/ ${formatChallengeNumber(s.goal)} ${escapeHtml(unit)}</span></div></div><div class="pct">${Math.floor(s.progress)}%</div></div>
+      <div class="challenge-progress"><i style="width:${Math.min(100, s.progress)}%"></i></div>
+      <div class="challenge-metrics">
+        <div class="challenge-metric"><b>${formatChallengeNumber(s.todayAmount)}</b><span>сегодня</span></div>
+        <div class="challenge-metric"><b>${formatChallengeNumber(s.dailyNeed)}</b><span>нужно / день</span></div>
+        <div class="challenge-metric"><b>${s.streak}</b><span>дней подряд</span></div>
+        <div class="challenge-metric"><b>${formatChallengeNumber(s.remaining)}</b><span>осталось</span></div>
+      </div>
+      <div class="quick-add">${quick}</div>
+      <div class="manual-add"><input type="number" min="0.01" step="any" inputmode="decimal" data-manual-amount="${escapeHtml(challenge.id)}" placeholder="Другое количество"><input type="date" data-manual-date="${escapeHtml(challenge.id)}" value="${todayISO()}"><button type="button" data-manual-add="${escapeHtml(challenge.id)}">Добавить</button></div>
+      <div class="challenge-mini-chart" aria-label="Активность за последние дни">${challengeChartHtml(challenge, s)}</div>
+      <div class="chips">${linked}<span class="chip gold">Лучший день: ${s.bestDay ? `${formatChallengeNumber(s.bestDay)} ${escapeHtml(unit)}` : '—'}</span></div>
+      <details class="challenge-tools"><summary>Настройки челленджа</summary><div class="actions"><button class="secondary" type="button" data-challenge-edit="${escapeHtml(challenge.id)}">Редактировать</button><button class="secondary" type="button" data-challenge-archive="${escapeHtml(challenge.id)}">В архив</button><button class="danger" type="button" data-challenge-delete="${escapeHtml(challenge.id)}">Удалить</button></div></details>
+    </article>`;
+  }
+
+  function isChallengeCompleted(challenge, data) {
+    if (!challenge || challenge.archivedAt) return false;
+    const stats = calcChallengeStats(challenge, data);
+    return challenge.endDate < todayISO() || stats.progress >= 100;
+  }
+
+  function challengePriority(challenge) {
+    const today = todayISO();
+    if (challenge.startDate <= today && challenge.endDate >= today) return 0;
+    if (challenge.startDate > today) return 1;
+    return 2;
+  }
+
+  function renderCompletedChallenge(challenge, data) {
+    const s = calcChallengeStats(challenge, data);
+    const unit = getChallengeUnitLabel(challenge);
+    return `<details class="completed-item" data-completed-challenge="${escapeHtml(challenge.id)}">
+      <summary>
+        <div class="completed-item-title"><b>${escapeHtml(challenge.icon)} ${escapeHtml(challenge.name)}</b><div class="completed-item-meta">${escapeHtml(formatDate(challenge.startDate))} — ${escapeHtml(formatDate(challenge.endDate))}</div></div>
+        <div class="completed-item-result">${formatChallengeNumber(s.total)} / ${formatChallengeNumber(s.goal)} ${escapeHtml(unit)} · ${Math.floor(s.progress)}%</div>
+      </summary>
+      <div class="completed-item-body">${renderChallengeCard(challenge, data)}</div>
+    </details>`;
+  }
+
+  function renderChallengeHistory(data, selectedId) {
+    const box = $('challengeHistory'); if (!box) return;
+    const challenge = data.challenges.find((c) => c.id === selectedId) || data.challenges.find((c) => !c.archivedAt) || data.challenges[0];
+    if (!challenge) { box.innerHTML = '<div class="empty">История появится после создания первого челленджа.</div>'; return; }
+    const entries = getAllChallengeEntries(challenge, data).sort((a,b) => String(b.date).localeCompare(String(a.date)) || String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, 60);
+    if (!entries.length) { box.innerHTML = '<div class="empty">Пока нет активности по этому челленджу.</div>'; return; }
+    const unit = getChallengeUnitLabel(challenge);
+    box.innerHTML = entries.map((e) => `<div class="challenge-entry">
+      <div><b>${escapeHtml(formatDate(e.date))}</b><div class="source">${e.source === 'workout' ? 'из тренировки' : 'ручная запись'}</div></div>
+      <div>${escapeHtml(e.note || (e.source === 'workout' ? 'Учтено автоматически' : 'Без заметки'))}${e.source === 'manual' ? `<div class="challenge-entry-actions"><button class="secondary" type="button" data-entry-edit="${escapeHtml(e.id)}">Изменить</button><button class="danger" type="button" data-entry-delete="${escapeHtml(e.id)}">Удалить</button></div>` : ''}</div>
+      <div class="amount">+${formatChallengeNumber(e.amount)} ${escapeHtml(unit)}</div>
+    </div>`).join('');
+    box.querySelectorAll('[data-entry-edit]').forEach((b) => b.addEventListener('click', () => editChallengeEntry(b.dataset.entryEdit)));
+    box.querySelectorAll('[data-entry-delete]').forEach((b) => b.addEventListener('click', () => deleteChallengeEntry(b.dataset.entryDelete)));
+  }
+
+  function bindChallengeCardActions(container, data) {
+    if (!container) return;
+    container.querySelectorAll('[data-challenge-quick]').forEach((b) => b.addEventListener('click', () => addChallengeEntry(b.dataset.challengeQuick, Number(b.dataset.amount), todayISO())));
+    container.querySelectorAll('[data-manual-add]').forEach((b) => b.addEventListener('click', () => {
+      const id = b.dataset.manualAdd;
+      const amount = container.querySelector(`[data-manual-amount="${CSS.escape(id)}"]`)?.value;
+      const date = container.querySelector(`[data-manual-date="${CSS.escape(id)}"]`)?.value || todayISO();
+      addChallengeEntry(id, Number(String(amount).replace(',', '.')), date);
+    }));
+    container.querySelectorAll('[data-challenge-edit]').forEach((b) => b.addEventListener('click', () => openChallengeEditor(data.challenges.find((c) => c.id === b.dataset.challengeEdit))));
+    container.querySelectorAll('[data-challenge-archive]').forEach((b) => b.addEventListener('click', () => archiveChallenge(b.dataset.challengeArchive)));
+    container.querySelectorAll('[data-challenge-delete]').forEach((b) => b.addEventListener('click', () => deleteChallenge(b.dataset.challengeDelete)));
+  }
+
+  function renderChallenges() {
+    const data = loadChallengeData();
+    const overview = $('challengeOverview');
+    const currentSelected = $('challengeHistoryFilter')?.value || '';
+    const visible = data.challenges.filter((c) => !c.archivedAt);
+    const active = visible.filter((c) => !isChallengeCompleted(c, data)).sort((a,b) => {
+      const priority = challengePriority(a) - challengePriority(b);
+      if (priority) return priority;
+      return String(b.createdAt || '').localeCompare(String(a.createdAt || '')) || b.startDate.localeCompare(a.startDate);
+    });
+    const completed = visible.filter((c) => isChallengeCompleted(c, data)).sort((a,b) =>
+      String(b.endDate || '').localeCompare(String(a.endDate || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || ''))
+    );
+
+    if (overview) {
+      const activeHtml = active.map((c, index) => renderChallengeCard(c, data, { primary:index === 0 })).join('');
+      const completedHtml = completed.length ? `<details class="completed-challenges" id="completedChallengesDetails"><summary><span>Завершённые челленджи</span><span class="tiny">${completed.length}</span></summary><div class="completed-list">${completed.map((c) => renderCompletedChallenge(c, data)).join('')}</div></details>` : '';
+      overview.innerHTML = active.length ? activeHtml + completedHtml : (completed.length ? `<div class="card challenge-list-empty" style="grid-column:1/-1"><div class="empty"><b>Сейчас нет активного челленджа.</b><br><span class="tiny">Создай новый — он сразу появится первым на главном экране.</span><div class="actions" style="justify-content:center"><button type="button" id="emptyNewChallenge">＋ Новый челлендж</button></div></div></div>${completedHtml}` : `<div class="card challenge-list-empty" style="grid-column:1/-1"><div class="empty"><b>Пока нет активных челленджей.</b><br><span class="tiny">Создай, например, «5000 отжиманий за сентябрь» — и после каждого подхода отмечай результат одной кнопкой.</span><div class="actions" style="justify-content:center"><button type="button" id="emptyNewChallenge">＋ Создать первый челлендж</button></div></div></div>`);
+      $('emptyNewChallenge')?.addEventListener('click', () => openChallengeEditor());
+      bindChallengeCardActions(overview, data);
+    }
+
+    const filter = $('challengeHistoryFilter');
+    if (filter) {
+      const selectable = [...data.challenges].sort((a,b) => {
+        const archivedDiff = Number(Boolean(a.archivedAt)) - Number(Boolean(b.archivedAt));
+        if (archivedDiff) return archivedDiff;
+        const completeDiff = Number(isChallengeCompleted(a, data)) - Number(isChallengeCompleted(b, data));
+        if (completeDiff) return completeDiff;
+        const priority = challengePriority(a) - challengePriority(b);
+        if (priority) return priority;
+        return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
+      });
+      filter.innerHTML = selectable.length ? selectable.map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.icon)} ${escapeHtml(c.name)}${c.archivedAt ? ' · архив' : isChallengeCompleted(c, data) ? ' · завершён' : ''}</option>`).join('') : '<option value="">Нет челленджей</option>';
+      if (selectable.some((c) => c.id === currentSelected)) filter.value = currentSelected;
+      else if (active[0]) filter.value = active[0].id;
+    }
+    renderChallengeHistory(data, filter?.value || '');
+
+    const archived = data.challenges.filter((c) => c.archivedAt).sort((a,b) => String(b.archivedAt).localeCompare(String(a.archivedAt)));
+    if ($('archivedChallenges')) $('archivedChallenges').innerHTML = archived.length ? archived.map((c) => `<div class="archived-row"><div><b>${escapeHtml(c.icon)} ${escapeHtml(c.name)}</b><div class="tiny">${escapeHtml(formatDate(c.startDate))} — ${escapeHtml(formatDate(c.endDate))}</div></div><button class="secondary" type="button" data-restore-challenge="${escapeHtml(c.id)}">Вернуть</button></div>`).join('') : '<div class="tiny">Архив пуст.</div>';
+    $('archivedChallenges')?.querySelectorAll('[data-restore-challenge]').forEach((b) => b.addEventListener('click', () => archiveChallenge(b.dataset.restoreChallenge, true)));
+    renderExerciseOptions();
+  }
+
+  function exportChallengesCsv() {
+    const data = loadChallengeData();
+    const rows = [['challenge','date','amount','unit','source','note']];
+    data.challenges.forEach((c) => getAllChallengeEntries(c, data).forEach((e) => rows.push([c.name,e.date,e.amount,getChallengeUnitLabel(c),e.source,e.note || ''])));
+    const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    download('challenge-activity.csv', 'text/csv;charset=utf-8', csv);
+  }
+
+  function makeFullBackup() {
+    return {
+      format: 'training-challenge-tracker-backup',
+      version: 2,
+      appVersion: APP_VERSION,
+      exportedAt: new Date().toISOString(),
+      workouts: loadWorkouts(),
+      challengeData: loadChallengeData()
+    };
+  }
+
+  function initChallengeTracker() {
+    $('newChallengeBtn')?.addEventListener('click', () => openChallengeEditor());
+    $('closeChallengeEditor')?.addEventListener('click', closeChallengeEditor);
+    $('cancelChallengeBtn')?.addEventListener('click', closeChallengeEditor);
+    $('saveChallengeBtn')?.addEventListener('click', saveChallengeFromForm);
+    $('challengeUnit')?.addEventListener('change', () => { $('challengeQuick').value = normalizeQuickValues('', $('challengeUnit').value).join(', '); syncChallengeFormUnit(); });
+    $('challengeHistoryFilter')?.addEventListener('change', () => renderChallengeHistory(loadChallengeData(), $('challengeHistoryFilter').value));
+    $('exportChallengeCsv')?.addEventListener('click', exportChallengesCsv);
+    document.querySelectorAll('[data-jump-target]').forEach((b) => b.addEventListener('click', () => {
+      const target = $(b.dataset.jumpTarget); if (target) target.scrollIntoView({ behavior:'smooth', block:'start' });
+    }));
+    renderChallenges();
   }
 
   function normalizeWorkout(w) {
@@ -1588,6 +2291,8 @@
 
   function renderHistory(data) {
     const box = $('history');
+    const count = $('historyCount');
+    if (count) count.textContent = `Тренировок: ${data.length}`;
     if (!data.length) {
       box.innerHTML = '<div class="empty">История пока пустая. Сохрани первую тренировку — и статистика появится автоматически.</div>';
       return;
@@ -1595,27 +2300,40 @@
     const sorted = [...data].sort((a, b) => new Date(b.date) - new Date(a.date) || String(b.id).localeCompare(String(a.id)));
     box.innerHTML = sorted.map((w) => {
       const chips = (w.exercises || []).map((e) => `<span class="chip">${escapeHtml(e.name)} · ${escapeHtml(e.sets)}×${escapeHtml(e.reps)}</span>`).join('');
-      return `<div class="workout">
-        <div class="workout-top">
-          <div>
+      return `<details class="workout" data-workout-id="${escapeHtml(w.id)}">
+        <summary>
+          <div class="workout-summary-main">
             <div class="workout-date">${escapeHtml(formatDate(w.date))}</div>
             <div class="workout-meta">${escapeHtml(w.duration || 0)} мин · ${escapeHtml(w.weight || 16)} кг · ${escapeHtml(w.intensity || '—')}${w.template ? ' · ' + escapeHtml(templateLabels[w.template] || w.template) : ''}${w.approximate ? ' · примерно' : ''}</div>
           </div>
-          <div class="history-actions">
-            <button class="secondary" type="button" data-edit="${escapeHtml(w.id)}">Редактировать</button>
-            <button class="danger" type="button" data-delete="${escapeHtml(w.id)}">Удалить</button>
+        </summary>
+        <div class="workout-body">
+          <div class="workout-top">
+            <div>
+              <div class="tiny">${(w.exercises || []).length ? `Упражнений: ${escapeHtml((w.exercises || []).length)}` : 'Без упражнений'}</div>
+            </div>
+            <div class="history-actions">
+              <button class="secondary" type="button" data-edit="${escapeHtml(w.id)}">Редактировать</button>
+              <button class="danger" type="button" data-delete="${escapeHtml(w.id)}">Удалить</button>
+            </div>
           </div>
+          <div class="chips">${chips}</div>
+          ${w.approximate ? '<span class="pill">восстановлено по переписке</span>' : ''}
+          ${w.notes ? `<div class="tiny" style="margin-top:10px">${escapeHtml(w.notes)}</div>` : ''}
         </div>
-        <div class="chips">${chips}</div>
-        ${w.approximate ? '<span class="pill">восстановлено по переписке</span>' : ''}
-        ${w.notes ? `<div class="tiny" style="margin-top:10px">${escapeHtml(w.notes)}</div>` : ''}
-      </div>`;
+      </details>`;
     }).join('');
     box.querySelectorAll('[data-edit]').forEach((btn) => {
-      btn.addEventListener('click', () => loadWorkoutForEdit(btn.getAttribute('data-edit')));
+      btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        loadWorkoutForEdit(btn.getAttribute('data-edit'));
+      });
     });
     box.querySelectorAll('[data-delete]').forEach((btn) => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         const id = btn.getAttribute('data-delete');
         if (!confirm('Удалить эту тренировку из истории?')) return;
         const next = loadWorkouts().filter((w) => w.id !== id);
@@ -1625,6 +2343,10 @@
         showToast('Запись удалена');
       });
     });
+  }
+
+  function setAllWorkoutHistory(open) {
+    document.querySelectorAll('#history details.workout').forEach((item) => { item.open = open; });
   }
 
   function renderNextWorkout() {
@@ -1762,7 +2484,7 @@
     return [
       'Как сохранять прогресс в дневнике гири:',
       '1. После тренировки нажать «Сохранить тренировку». Она сохранится в браузере на этом устройстве.',
-      '2. Раз в неделю нажать «Скачать JSON-бэкап». Это главный файл восстановления истории.',
+      '2. Раз в неделю нажать «Скачать полный JSON-бэкап». Это главный файл восстановления истории.',
       '3. Сохранить JSON в iCloud Drive, Google Drive, Яндекс Диск или отправить себе в Telegram.',
       '4. Если открыл приложение на новом телефоне или в другом браузере — нажать «Восстановить из JSON» и выбрать сохранённый файл.',
       '5. CSV использовать для Excel / Google Sheets, но для восстановления приложения лучше JSON.',
@@ -1806,6 +2528,7 @@
   function render() {
     const data = loadWorkouts();
     renderDashboard(data);
+    if ($('challengeOverview')) renderChallenges();
     renderStats(data);
     renderAnalytics(data);
     renderHistory(data);
@@ -1826,17 +2549,19 @@
   ['jumpFormTop','quickForm'].forEach((id) => { if ($(id)) $(id).addEventListener('click', () => jumpTo('formCard')); });
   ['jumpAnalyticsTop','quickAnalytics'].forEach((id) => { if ($(id)) $(id).addEventListener('click', () => jumpTo('analyticsSection')); });
   if ($('jumpHistory')) $('jumpHistory').addEventListener('click', () => jumpTo('historySection'));
+  if ($('expandAllWorkouts')) $('expandAllWorkouts').addEventListener('click', () => setAllWorkoutHistory(true));
+  if ($('collapseAllWorkouts')) $('collapseAllWorkouts').addEventListener('click', () => setAllWorkoutHistory(false));
   $('copyNext').addEventListener('click', () => copyText(makeNextText(), 'Тренировка скопирована'));
   $('copyPlan').addEventListener('click', () => copyText(makePlanText(), 'План скопирован'));
   $('seedWorkouts').addEventListener('click', () => addInitialWorkouts(true));
   $('exportJson').addEventListener('click', () => {
     localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
-    download('kettlebell-workouts.json', 'application/json;charset=utf-8', JSON.stringify(loadWorkouts(), null, 2));
+    download('training-challenge-tracker-backup.json', 'application/json;charset=utf-8', JSON.stringify(makeFullBackup(), null, 2));
     render();
   });
   $('copyBackup').addEventListener('click', () => {
     localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
-    copyText(JSON.stringify(loadWorkouts(), null, 2), 'JSON скопирован');
+    copyText(JSON.stringify(makeFullBackup(), null, 2), 'Полный JSON скопирован');
     render();
   });
   $('copySaveGuide').addEventListener('click', () => copyText(makeSaveGuide(), 'Инструкция скопирована'));
@@ -1848,16 +2573,27 @@
     try {
       const text = await file.text();
       const parsed = JSON.parse(text);
-      if (!Array.isArray(parsed)) throw new Error('JSON должен быть массивом тренировок');
-      const normalized = normalizeWorkouts(parsed);
-      if (!normalized.length) throw new Error('В файле нет тренировок');
-      if (loadWorkouts().length && !confirm('Заменить текущую историю тренировок данными из JSON-бэкапа?')) return;
-      saveWorkouts(normalized);
+      // Backward compatibility: старые бэкапы были просто массивом тренировок.
+      if (Array.isArray(parsed)) {
+        const normalized = normalizeWorkouts(parsed);
+        if (!normalized.length) throw new Error('В файле нет тренировок');
+        if (loadWorkouts().length && !confirm('Это старый бэкап только тренировок. Заменить текущую историю тренировок? Челленджи останутся без изменений.')) return;
+        saveWorkouts(normalized);
+        showToast(`Импортировано тренировок: ${normalized.length}`);
+      } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.workouts)) {
+        const workouts = normalizeWorkouts(parsed.workouts);
+        const challengeData = normalizeChallengeData(parsed.challengeData || parsed.challenges || {});
+        if ((loadWorkouts().length || loadChallengeData().challenges.length) && !confirm('Заменить текущие тренировки и челленджи данными из полного JSON-бэкапа?')) return;
+        saveWorkouts(workouts);
+        saveChallengeData(challengeData);
+        showToast(`Восстановлено: ${workouts.length} тренировок, ${challengeData.challenges.length} челленджей`);
+      } else {
+        throw new Error('Неизвестный формат JSON-бэкапа');
+      }
       localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
       localStorage.removeItem(DRAFT_KEY);
       clearForm();
       render();
-      showToast(`Импортировано тренировок: ${normalized.length}`);
     } catch (e) {
       showToast('Не удалось импортировать JSON');
       console.error(e);
@@ -1882,7 +2618,12 @@
 
   seedIfEmpty();
   if (!restoreDraftIfUseful()) clearForm();
+  initChallengeTracker();
   render();
+
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('Service worker:', e)));
+  }
 })();
 </script>
 </body>
